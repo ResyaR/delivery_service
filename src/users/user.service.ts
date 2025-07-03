@@ -15,6 +15,15 @@ export class UserService {
     return this.userRepository.save(user);
   }
 
+  async findById(id: number): Promise<User | null> {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
+  async updateProfile(id: number, dto: Partial<User>): Promise<User | null> {
+    await this.userRepository.update(id, dto);
+    return this.findById(id);
+  }
+
   async findByUsername(username: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { username } });
   }

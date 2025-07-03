@@ -1,6 +1,6 @@
 # Delivery Service API
 
-API backend profesional berbasis NestJS, PostgreSQL, JWT Auth, dan dokumentasi Swagger. Cocok untuk aplikasi mobile (Android Studio) maupun web.
+API backend berbasis NestJS, PostgreSQL, JWT Auth, dan dokumentasi Swagger.
 
 ## Fitur Utama
 - Register user
@@ -9,22 +9,51 @@ API backend profesional berbasis NestJS, PostgreSQL, JWT Auth, dan dokumentasi S
 - Proteksi endpoint dengan JWT
 - Dokumentasi Swagger di `/docs`
 
-## Struktur Folder
+
+## Struktur Folder & Penjelasan
+
 ```
 src/
-  app.module.ts
-  main.ts
-  swagger.ts
-  auth/
-    auth.module.ts
-    auth.controller.ts
-    auth.service.ts
-  users/
-    user.module.ts
-    user.controller.ts
-    user.service.ts
-    user.entity.ts
+  app.module.ts         # Root module aplikasi
+  main.ts               # Entry point aplikasi NestJS
+  swagger.ts            # Konfigurasi Swagger (dokumentasi API)
+  app.controller.ts     # (Opsional) Controller utama (umumnya untuk health check)
+  app.service.ts        # (Opsional) Service utama
+  auth/                 # Modul autentikasi (register, login, refresh, logout, proteksi JWT)
+    auth.module.ts         # Module untuk auth
+    auth.controller.ts     # Controller endpoint auth
+    auth.service.ts        # Service logic auth
+    jwt-auth.guard.ts      # Guard untuk proteksi endpoint dengan JWT
+    jwt.strategy.ts        # Strategy validasi JWT
+  users/                # Modul user/profile
+    user.module.ts          # Module untuk user
+    user.controller.ts      # (Sudah tidak digunakan, bisa dihapus)
+    user.service.ts         # Service logic user
+    user.entity.ts          # Entity user (mapping ke database)
+    dto/                    # Data Transfer Object (validasi input user)
+      update-profile.dto.ts   # DTO untuk update profil user
+      update-avatar.dto.ts    # DTO untuk update avatar user
 ```
+
+### Penjelasan Tiap Folder/File
+
+- **auth/**: Semua logic terkait autentikasi, otorisasi, dan proteksi endpoint. Termasuk login, register, refresh token, logout, dan guard JWT.
+  - `auth.controller.ts`: Mendefinisikan endpoint terkait auth.
+  - `auth.service.ts`: Logic bisnis autentikasi (register, login, validasi user, dsb).
+  - `jwt-auth.guard.ts`: Guard untuk proteksi endpoint dengan JWT.
+  - `jwt.strategy.ts`: Strategy validasi JWT dan ekstraksi user dari token.
+
+- **users/**: Semua logic terkait user dan profil.
+  - `user.service.ts`: Logic bisnis user (get/update profile, dsb).
+  - `user.entity.ts`: Entity user untuk mapping ke database.
+  - `dto/`: DTO untuk validasi dan struktur data input user.
+    - `update-profile.dto.ts`: DTO update profil user.
+    - `update-avatar.dto.ts`: DTO update avatar user.
+
+- **app.module.ts**: Root module aplikasi, menggabungkan semua module lain.
+- **main.ts**: Entry point aplikasi NestJS.
+- **swagger.ts**: Konfigurasi Swagger untuk dokumentasi API.
+- **app.controller.ts/app.service.ts**: (Opsional) Controller/service utama, biasanya untuk health check atau endpoint global.
 
 ## Konfigurasi Environment
 Buat file `.env` di folder `backend/`:
