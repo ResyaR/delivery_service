@@ -10,8 +10,9 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(username: string, password: string): Promise<User> {
-    const user = this.userRepository.create({ username, password });
+
+  async create(email: string, password: string): Promise<User> {
+    const user = this.userRepository.create({ email, password });
     return this.userRepository.save(user);
   }
 
@@ -24,8 +25,9 @@ export class UserService {
     return this.findById(id);
   }
 
-  async findByUsername(username: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { username } });
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
   }
 
   async setRefreshToken(userId: number, refreshToken: string): Promise<void> {

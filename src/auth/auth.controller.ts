@@ -23,75 +23,26 @@ export class AuthController {
           type: 'object',
           properties: {
             message: { type: 'string', example: 'Profile fetched successfully' },
-            username: { type: 'string', example: 'userbaru' },
-          },
-        },
-      },
-    },
-  })
-  async getProfile(@Request() req) {
-    // Ambil username dari JWT payload
-    const username = req.user?.username;
-    if (!username) {
-      return { message: 'Invalid JWT payload: username not found', username: null };
-    }
-    return { message: 'Profile fetched successfully', username };
-  }
-  constructor(
-    private readonly authService: AuthService,
-    private readonly userService: UserService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
-  ) {}
-
-  @Post('register')
-  @ApiBody({ schema: { properties: { username: { type: 'string' }, password: { type: 'string' } } } })
-  @ApiResponse({
-    status: 201,
-    description: 'User registered successfully.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            message: { type: 'string', example: 'User registered successfully' },
-            user: {
-              type: 'object',
-              properties: {
-                id: { type: 'number', example: 1 },
-                username: { type: 'string', example: 'string' },
-              },
-            },
+            email: { type: 'string', example: 'user@email.com' },
+            fullName: { type: 'string', example: 'Budi Santoso' },
+            phone: { type: 'string', example: '+628123456789' },
+            avatar: { type: 'string', example: 'https://cdn.example.com/avatar.jpg' },
           },
         },
       },
     },
   })
   @ApiResponse({
-    status: 400,
-    description: 'Bad request. Invalid input data.',
+    status: 401,
+    description: 'Unauthorized. Token tidak valid atau tidak ada.',
     content: {
       'application/json': {
         schema: {
           type: 'object',
           properties: {
-            error: { type: 'string', example: 'Bad Request' },
-            message: { type: 'string', example: 'Username and password are required' },
-          },
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Conflict. Username already exists.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            error: { type: 'string', example: 'Conflict' },
-            message: { type: 'string', example: 'Username already exists' },
+            statusCode: { type: 'number', example: 401 },
+            message: { type: 'string', example: 'Unauthorized' },
+            error: { type: 'string', example: 'Unauthorized' },
           },
         },
       },
@@ -112,20 +63,112 @@ export class AuthController {
       },
     },
   })
-  async register(@Body() body: { username: string; password: string }) {
+  async getProfile(@Request() req) {
+    const user = req.user;
+    if (!user?.email) {
+      return { message: 'Invalid JWT payload: email not found', email: null };
+    }
+    return {
+      message: 'Profile fetched successfully',
+      email: user.email,
+      fullName: user.fullName || null,
+      phone: user.phone || null,
+      avatar: user.avatar || null,
+    };
+  }
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
+
+
+
+  @Post('register')
+  @ApiBody({ schema: { properties: { email: { type: 'string', format: 'email' }, password: { type: 'string' } } } })
+  @ApiResponse({
+    status: 201,
+    description: 'User registered successfully.',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            message: { type: 'string', example: 'User registered successfully' },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'number', example: 1 },
+                email: { type: 'string', example: 'user@email.com' },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request. Invalid input data.',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', example: 'Bad Request' },
+            message: { type: 'string', example: 'Email and password are required' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict. Email already exists.',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', example: 'Conflict' },
+            message: { type: 'string', example: 'Email already exists' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error.',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', example: 'Internal Server Error' },
+            message: { type: 'string', example: 'Internal server error' },
+          },
+        },
+      },
+    },
+  })
+  async register(@Body() body: { email: string; password: string }) {
     const hashedPassword = await bcrypt.hash(body.password, 10);
-    const user = await this.userService.create(body.username, hashedPassword);
+    const user = await this.userService.create(body.email, hashedPassword);
     return {
       message: 'User registered successfully',
       user: {
         id: user.id,
-        username: user.username,
+        email: user.email,
       },
     };
   }
 
+
+
   @Post('login')
-  @ApiBody({ schema: { properties: { username: { type: 'string' }, password: { type: 'string' } } } })
+  @ApiBody({ schema: { properties: { email: { type: 'string', format: 'email' }, password: { type: 'string' } } } })
   @ApiResponse({
     status: 201,
     description: 'Login success, returns access and refresh token.',
@@ -144,7 +187,7 @@ export class AuthController {
               type: 'object',
               properties: {
                 id: { type: 'number', example: 1 },
-                username: { type: 'string', example: 'string' },
+                email: { type: 'string', example: 'user@email.com' },
               },
             },
           },
@@ -152,14 +195,45 @@ export class AuthController {
       },
     },
   })
-  async login(@Body() body: { username: string; password: string }) {
-    const user = await this.authService.validateUser(body.username, body.password);
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized. Invalid credentials.',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            statusCode: { type: 'number', example: 401 },
+            message: { type: 'string', example: 'Invalid credentials' },
+            error: { type: 'string', example: 'Unauthorized' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error.',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', example: 'Internal Server Error' },
+            message: { type: 'string', example: 'Internal server error' },
+          },
+        },
+      },
+    },
+  })
+  async login(@Body() body: { email: string; password: string }) {
+    const user = await this.authService.validateUser(body.email, body.password);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
     // Generate refresh token dengan expired berbeda (30 hari)
     const refreshToken = this.jwtService.sign(
-      { sub: user.id, username: user.username },
+      { sub: user.id, email: user.email },
       { secret: this.configService.get('REFRESH_SECRET'), expiresIn: '30d' }
     );
     await this.userService.setRefreshToken(user.id, refreshToken);
@@ -216,6 +290,7 @@ export class AuthController {
     }
   }
 
+
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @ApiBearerAuth()
@@ -235,11 +310,11 @@ export class AuthController {
     },
   })
   async logout(@Request() req) {
-    const username = req.user?.username;
-    if (!username) {
-      return { message: 'Invalid JWT payload: username not found' };
+    const email = req.user?.email;
+    if (!email) {
+      return { message: 'Invalid JWT payload: email not found' };
     }
-    const user = await this.userService.findByUsername(username);
+    const user = await this.userService.findByEmail(email);
     if (user) {
       await this.userService.setRefreshToken(user.id, '');
     }

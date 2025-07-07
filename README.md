@@ -2,12 +2,14 @@
 
 API backend berbasis NestJS, PostgreSQL, JWT Auth, dan dokumentasi Swagger.
 
+
 ## Fitur Utama
-- Register user
-- Login user (JWT access token & refresh token)
+- Register & login user (JWT access & refresh token, pakai email)
 - Refresh token (dapatkan access token baru)
 - Proteksi endpoint dengan JWT
-- Dokumentasi Swagger di `/docs`
+- Manajemen profil user (GET/PUT profile, avatar upload)
+- Delivery API: kirim sekarang, jadwal pengantaran, titip beli (proxy shopping)
+- Dokumentasi Swagger di `/docs`, response error lengkap
 
 
 ## Struktur Folder & Penjelasan
@@ -25,9 +27,17 @@ src/
     auth.service.ts        # Service logic auth
     jwt-auth.guard.ts      # Guard untuk proteksi endpoint dengan JWT
     jwt.strategy.ts        # Strategy validasi JWT
+  delivery/             # Modul delivery (fitur logistik)
+    delivery.module.ts      # Module delivery
+    delivery.controller.ts  # Controller endpoint delivery
+    delivery.service.ts     # Service logic delivery
+    dto/                    # DTO delivery (create, response, enum)
+      create-delivery.dto.ts
+      delivery-type.enum.ts
+      delivery-response.dto.ts
   users/                # Modul user/profile
     user.module.ts          # Module untuk user
-    user.controller.ts      # (Sudah tidak digunakan, bisa dihapus)
+    user.controller.ts      # Controller user (profile, avatar)
     user.service.ts         # Service logic user
     user.entity.ts          # Entity user (mapping ke database)
     dto/                    # Data Transfer Object (validasi input user)
@@ -74,14 +84,16 @@ DB_DATABASE=delivery_service
    ```
    npm run start:dev
    ```
-3. Buka dokumentasi API di: [http://localhost:3000/docs](http://localhost:3000/docs)
+3. Buka dokumentasi API di: [http://217.138.219.221:33370/docs/#/](http://217.138.219.221:33370/docs/#/)
+
+## Contoh Request
 
 ## Contoh Request
 ### Register
 ```
 POST /auth/register
 {
-  "username": "userbaru",
+  "email": "user@email.com",
   "password": "passwordku"
 }
 ```
@@ -90,7 +102,7 @@ POST /auth/register
 ```
 POST /auth/login
 {
-  "username": "userbaru",
+  "email": "user@email.com",
   "password": "passwordku"
 }
 ```
@@ -108,6 +120,40 @@ Response:
 POST /auth/refresh
 {
   "refresh_token": "..."
+}
+```
+
+### Kirim Sekarang
+```
+POST /delivery/kirim-sekarang
+{
+  "pickupLocation": "Jl. Merdeka No.1",
+  "dropoffLocation": "Jl. Sudirman No.2",
+  "barang": { "itemName": "Dokumen", "scale": "Ringan" },
+  "type": "KIRIM_SEKARANG"
+}
+```
+
+### Jadwal Pengantaran
+```
+POST /delivery/jadwal
+{
+  "pickupLocation": "Jl. Merdeka No.1",
+  "dropoffLocation": "Jl. Sudirman No.2",
+  "barang": { "itemName": "Paket", "scale": "Sedang" },
+  "jadwal": "2025-07-08T10:00:00Z",
+  "type": "JADWAL"
+}
+```
+
+### Titip Beli
+```
+POST /delivery/titip-beli
+{
+  "pickupLocation": "Toko Indomaret",
+  "dropoffLocation": "Jl. Sudirman No.2",
+  "titipDeskripsi": "Beli 2 botol air mineral dan 1 snack",
+  "type": "TITIP_BELI"
 }
 ```
 
