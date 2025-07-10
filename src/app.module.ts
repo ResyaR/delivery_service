@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { DeliveryModule } from './delivery/delivery.module';
+import { UsersModule } from './users/user.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -24,6 +25,7 @@ import { DeliveryModule } from './delivery/delivery.module';
     }),
     AuthModule,
     DeliveryModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

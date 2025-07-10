@@ -84,7 +84,7 @@ DB_DATABASE=delivery_service
    ```
    npm run start:dev
    ```
-3. Buka dokumentasi API di: [http://217.138.219.221:33370/docs/#/](http://217.138.219.221:33370/docs/#/)
+3. Buka dokumentasi API di: [http://http://37.120.217.77:31125/docs](http://http://37.120.217.77:31125/docs)
 
 ## Contoh Request
 
@@ -154,6 +154,64 @@ POST /delivery/titip-beli
   "dropoffLocation": "Jl. Sudirman No.2",
   "titipDeskripsi": "Beli 2 botol air mineral dan 1 snack",
   "type": "TITIP_BELI"
+}
+```
+
+## Endpoint Users (Profile)
+
+### Get Profile (Auth)
+```
+GET /auth/profile
+Headers: Authorization: Bearer <access_token>
+```
+Response:
+```
+{
+  "message": "Profile fetched successfully",
+  "email": "user@email.com",
+  "fullName": "Budi Santoso",
+  "phone": "+628123456789",
+  "avatar": "https://cdn.example.com/avatar.jpg"
+}
+```
+
+### Update Profile (Nama, Phone)
+```
+PUT /users/profile
+Headers: Authorization: Bearer <access_token>
+Body:
+{
+  "fullName": "Nama Baru",
+  "phone": "+628123456789"
+}
+```
+Response:
+```
+{
+  "message": "Profile updated successfully",
+  "data": {
+    "id": 1,
+    "email": "user@email.com",
+    "fullName": "Nama Baru",
+    "phone": "+628123456789",
+    "avatar": null
+  }
+}
+```
+
+### Update Avatar
+```
+POST /users/profile/avatar
+Headers: Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+Body:
+  avatar: <file>
+```
+Response:
+```
+{
+  "message": "Avatar updated successfully",
+  "fileName": "avatar.jpg"
 }
 ```
 
