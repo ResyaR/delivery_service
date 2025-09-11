@@ -4,10 +4,10 @@ import { SwaggerModule, DocumentBuilder, SwaggerCustomOptions } from '@nestjs/sw
 export function setupSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
     .setTitle('Delivery Service API')
-    .setDescription('API documentation for login, register, refresh, profile, and logout')
-    .setVersion('1.0')
+    .setDescription('API documentation for MT trans')
+    .setVersion('2.0')
     .addBearerAuth()
-    .addServer('http://localhost:3000')
+    .addServer('http://localhost:5000')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   const customOptions: SwaggerCustomOptions = {

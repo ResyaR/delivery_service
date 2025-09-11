@@ -6,13 +6,16 @@ import {
   UseGuards,
   Request,
   Param,
-  Query
+  Query,
+  Put
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { DeliveryService } from './delivery.service';
-import { CreateDeliveryDto } from './dto/create-delivery.dto';
+import { CreateDeliveryDto, CreateTitipBeliDto } from './dto/create-delivery.dto';
+import { DeliveryListResponseDto, DeliveryDetailResponseDto, DeliveryCreateResponseDto } from './dto/delivery-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DeliveryType } from './dto/delivery-type.enum';
+import { DeliveryStatus } from './delivery.entity';
 
 @ApiTags('delivery')
 @ApiBearerAuth()
@@ -23,260 +26,254 @@ export class DeliveryController {
 
   @Post('kirim-sekarang')
   @ApiOperation({ summary: 'Buat permintaan Kirim Sekarang (langsung antar barang)' })
-  @ApiBody({ schema: {
-    type: 'object',
-    properties: {
-      pickupLocation: { type: 'string', example: 'Jl. Merdeka No.1' },
-      dropoffLocation: { type: 'string', example: 'Jl. Sudirman No.2' },
-      barang: {
-        type: 'object',
-        properties: {
-          itemName: { type: 'string', example: 'Dokumen' },
-          scale: { type: 'string', example: 'Ringan' }
-        },
-        required: ['itemName', 'scale']
-      },
-      price: { type: 'number', example: 25000 },
-      type: { type: 'string', enum: ['KIRIM_SEKARANG'], example: 'KIRIM_SEKARANG' }
-    },
-    required: ['pickupLocation', 'dropoffLocation', 'barang', 'type']
-  } })
-  @ApiResponse({ status: 201, description: 'Permintaan kirim sekarang berhasil dibuat.' })
+  @ApiBody({ type: CreateDeliveryDto })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Permintaan kirim sekarang berhasil dibuat.',
+    type: DeliveryCreateResponseDto
+  })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized. Token tidak valid atau tidak ada.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            statusCode: { type: 'number', example: 401 },
-            message: { type: 'string', example: 'Unauthorized' },
-            error: { type: 'string', example: 'Unauthorized' },
-          },
-        },
-      },
-    },
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
   })
   @ApiResponse({
     status: 500,
-    description: 'Internal server error.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            error: { type: 'string', example: 'Internal Server Error' },
-            message: { type: 'string', example: 'Internal server error' },
-          },
-        },
-      },
-    },
+    description: 'Internal server error.'
   })
-  createKirimSekarang(@Request() req, @Body() dto: CreateDeliveryDto) {
+  async createKirimSekarang(@Request() req, @Body() dto: CreateDeliveryDto): Promise<DeliveryCreateResponseDto> {
+    const delivery = await this.deliveryService.create(req.user.id, { ...dto, type: DeliveryType.KIRIM_SEKARANG }, DeliveryType.KIRIM_SEKARANG);
     return {
       message: 'Kirim Sekarang request created',
-      data: this.deliveryService.create(req.user.id, { ...dto, type: DeliveryType.KIRIM_SEKARANG }, DeliveryType.KIRIM_SEKARANG)
+      data: delivery
     };
   }
 
   @Post('jadwal')
   @ApiOperation({ summary: 'Buat permintaan Jadwal Pengantaran (antar barang terjadwal)' })
-  @ApiBody({ schema: {
-    type: 'object',
-    properties: {
-      pickupLocation: { type: 'string', example: 'Jl. Merdeka No.1' },
-      dropoffLocation: { type: 'string', example: 'Jl. Sudirman No.2' },
-      barang: {
-        type: 'object',
-        properties: {
-          itemName: { type: 'string', example: 'Paket' },
-          scale: { type: 'string', example: 'Sedang' }
-        },
-        required: ['itemName', 'scale']
-      },
-      jadwal: { type: 'string', example: '2025-07-08T10:00:00Z' },
-      price: { type: 'number', example: 35000 },
-      type: { type: 'string', enum: ['JADWAL'], example: 'JADWAL' }
-    },
-    required: ['pickupLocation', 'dropoffLocation', 'barang', 'jadwal', 'type']
-  } })
-  @ApiResponse({ status: 201, description: 'Permintaan jadwal pengantaran berhasil dibuat.' })
+  @ApiBody({ type: CreateDeliveryDto })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Permintaan jadwal pengantaran berhasil dibuat.',
+    type: DeliveryCreateResponseDto
+  })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized. Token tidak valid atau tidak ada.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            statusCode: { type: 'number', example: 401 },
-            message: { type: 'string', example: 'Unauthorized' },
-            error: { type: 'string', example: 'Unauthorized' },
-          },
-        },
-      },
-    },
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
   })
   @ApiResponse({
     status: 500,
-    description: 'Internal server error.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            error: { type: 'string', example: 'Internal Server Error' },
-            message: { type: 'string', example: 'Internal server error' },
-          },
-        },
-      },
-    },
+    description: 'Internal server error.'
   })
-  createJadwal(@Request() req, @Body() dto: CreateDeliveryDto) {
+  async createJadwal(@Request() req, @Body() dto: CreateDeliveryDto): Promise<DeliveryCreateResponseDto> {
+    const delivery = await this.deliveryService.create(req.user.id, { ...dto, type: DeliveryType.JADWAL }, DeliveryType.JADWAL);
     return {
       message: 'Jadwal Pengantaran request created',
-      data: this.deliveryService.create(req.user.id, { ...dto, type: DeliveryType.JADWAL }, DeliveryType.JADWAL)
+      data: delivery
     };
   }
 
   @Post('titip-beli')
   @ApiOperation({ summary: 'Buat permintaan Titip Beli (proxy shopping)' })
-  @ApiBody({ schema: {
-    type: 'object',
-    properties: {
-      pickupLocation: { type: 'string', example: 'Toko Indomaret' },
-      dropoffLocation: { type: 'string', example: 'Jl. Sudirman No.2' },
-      titipDeskripsi: { type: 'string', example: 'Beli 2 botol air mineral dan 1 snack' },
-      price: { type: 'number', example: 25000 },
-      type: { type: 'string', enum: ['TITIP_BELI'], example: 'TITIP_BELI' }
-    },
-    required: ['pickupLocation', 'dropoffLocation', 'titipDeskripsi', 'type']
-  } })
-  @ApiResponse({ status: 201, description: 'Permintaan titip beli berhasil dibuat.' })
+  @ApiBody({ type: CreateTitipBeliDto })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Permintaan titip beli berhasil dibuat.',
+    type: DeliveryCreateResponseDto
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request. titipDeskripsi is required.'
+  })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized. Token tidak valid atau tidak ada.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            statusCode: { type: 'number', example: 401 },
-            message: { type: 'string', example: 'Unauthorized' },
-            error: { type: 'string', example: 'Unauthorized' },
-          },
-        },
-      },
-    },
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
   })
   @ApiResponse({
     status: 500,
-    description: 'Internal server error.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            error: { type: 'string', example: 'Internal Server Error' },
-            message: { type: 'string', example: 'Internal server error' },
-          },
-        },
-      },
-    },
+    description: 'Internal server error.'
   })
-  createTitipBeli(@Request() req, @Body() dto: CreateDeliveryDto) {
-    // Validasi minimal titipDeskripsi wajib diisi
-    if (!dto.titipDeskripsi) {
-      return { message: 'titipDeskripsi is required for titip-beli', statusCode: 400 };
-    }
+  async createTitipBeli(@Request() req, @Body() dto: CreateTitipBeliDto): Promise<DeliveryCreateResponseDto> {
+    const delivery = await this.deliveryService.create(req.user.id, { ...dto, type: DeliveryType.TITIP_BELI }, DeliveryType.TITIP_BELI);
     return {
       message: 'Titip Beli request created',
-      data: this.deliveryService.create(req.user.id, { ...dto, type: DeliveryType.TITIP_BELI }, DeliveryType.TITIP_BELI)
+      data: delivery
     };
   }
 
   @Get('history')
   @ApiOperation({ summary: 'Ambil riwayat permintaan pengantaran user' })
   @ApiQuery({ name: 'type', required: false, enum: DeliveryType })
-  @ApiResponse({ status: 200, description: 'Daftar riwayat pengantaran.' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Daftar riwayat pengantaran.',
+    type: DeliveryListResponseDto
+  })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized. Token tidak valid atau tidak ada.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            statusCode: { type: 'number', example: 401 },
-            message: { type: 'string', example: 'Unauthorized' },
-            error: { type: 'string', example: 'Unauthorized' },
-          },
-        },
-      },
-    },
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
   })
   @ApiResponse({
     status: 500,
-    description: 'Internal server error.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            error: { type: 'string', example: 'Internal Server Error' },
-            message: { type: 'string', example: 'Internal server error' },
-          },
-        },
-      },
-    },
+    description: 'Internal server error.'
   })
-  getHistory(@Request() req, @Query('type') type?: DeliveryType) {
+  async getHistory(@Request() req, @Query('type') type?: DeliveryType): Promise<DeliveryListResponseDto> {
+    const deliveries = await this.deliveryService.findAll(req.user.id, type);
     return {
       message: 'Delivery history fetched',
-      data: this.deliveryService.findAll(req.user.id, type)
+      data: deliveries
+    };
+  }
+
+  @Get('pending')
+  @ApiOperation({ summary: 'Ambil daftar pengantaran pending (untuk driver)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Daftar pengantaran pending.',
+    type: DeliveryListResponseDto
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error.'
+  })
+  async getPendingDeliveries(): Promise<DeliveryListResponseDto> {
+    const deliveries = await this.deliveryService.findPendingDeliveries();
+    return {
+      message: 'Pending deliveries fetched',
+      data: deliveries
     };
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Ambil detail status pengantaran' })
   @ApiParam({ name: 'id', type: Number })
-  @ApiResponse({ status: 200, description: 'Detail status pengantaran.' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Detail status pengantaran.',
+    type: DeliveryDetailResponseDto
+  })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized. Token tidak valid atau tidak ada.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            statusCode: { type: 'number', example: 401 },
-            message: { type: 'string', example: 'Unauthorized' },
-            error: { type: 'string', example: 'Unauthorized' },
-          },
-        },
-      },
-    },
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Delivery not found.'
   })
   @ApiResponse({
     status: 500,
-    description: 'Internal server error.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            error: { type: 'string', example: 'Internal Server Error' },
-            message: { type: 'string', example: 'Internal server error' },
-          },
-        },
-      },
-    },
+    description: 'Internal server error.'
   })
-  getStatus(@Request() req, @Param('id') id: number) {
+  async getStatus(@Request() req, @Param('id') id: number): Promise<DeliveryDetailResponseDto> {
+    const delivery = await this.deliveryService.findOne(req.user.id, Number(id));
     return {
       message: 'Delivery status fetched',
-      data: this.deliveryService.findOne(req.user.id, Number(id))
+      data: delivery
+    };
+  }
+
+  @Put(':id/assign-driver')
+  @ApiOperation({ summary: 'Assign driver ke pengantaran (untuk admin/driver)' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({ schema: {
+    type: 'object',
+    properties: {
+      driverId: { type: 'number', example: 1 }
+    },
+    required: ['driverId']
+  }})
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Driver berhasil di-assign.',
+    type: DeliveryDetailResponseDto
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Delivery not found.'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error.'
+  })
+  async assignDriver(@Param('id') id: number, @Body() body: { driverId: number }): Promise<DeliveryDetailResponseDto> {
+    const delivery = await this.deliveryService.assignDriver(Number(id), body.driverId);
+    return {
+      message: 'Driver assigned successfully',
+      data: delivery
+    };
+  }
+
+  @Put(':id/update-status')
+  @ApiOperation({ summary: 'Update status pengantaran (untuk driver)' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({ schema: {
+    type: 'object',
+    properties: {
+      status: { 
+        type: 'string', 
+        enum: Object.values(DeliveryStatus),
+        example: 'picked_up'
+      }
+    },
+    required: ['status']
+  }})
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Status berhasil diupdate.',
+    type: DeliveryDetailResponseDto
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Delivery not found.'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error.'
+  })
+  async updateStatus(@Param('id') id: number, @Body() body: { status: DeliveryStatus }): Promise<DeliveryDetailResponseDto> {
+    const delivery = await this.deliveryService.updateStatus(Number(id), body.status);
+    return {
+      message: 'Status updated successfully',
+      data: delivery
+    };
+  }
+
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Batalkan permintaan pengantaran' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Permintaan pengantaran berhasil dibatalkan.',
+    type: DeliveryDetailResponseDto
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Delivery not found.'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error.'
+  })
+  async cancelDelivery(@Request() req, @Param('id') id: number): Promise<DeliveryDetailResponseDto> {
+    const delivery = await this.deliveryService.cancelDelivery(Number(id), req.user.id);
+    return {
+      message: 'Delivery cancelled successfully',
+      data: delivery
     };
   }
 }

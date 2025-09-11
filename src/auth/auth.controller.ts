@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UnauthorizedException, ConflictException, BadRequestException, UseGuards, Request, Get, Inject } from '@nestjs/common';
+import { Controller, Post, Body, UnauthorizedException, ConflictException, BadRequestException, UseGuards, Request, Get, Inject, InternalServerErrorException } from '@nestjs/common';
 import { ApiTags, ApiBody, ApiResponse, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { UserService } from '../users/user.service';
@@ -6,6 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { LogoutSuccessDto, LogoutErrorDto } from './dto/logout.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -153,16 +154,35 @@ export class AuthController {
       },
     },
   })
-  async register(@Body() body: { email: string; password: string }) {
+  async register(@Body() body: import('./dto/register.dto').RegisterDto) {
+    // Validate required fields
+    if (!body?.email || !body?.password) {
+      throw new BadRequestException('Email and password are required');
+    }
+
+    // Check if email already exists to return 409 gracefully
+    const existing = await this.userService.findByEmail(body.email);
+    if (existing) {
+      throw new ConflictException('Email already exists');
+    }
+
     const hashedPassword = await bcrypt.hash(body.password, 10);
-    const user = await this.userService.create(body.email, hashedPassword);
-    return {
-      message: 'User registered successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-      },
-    };
+    try {
+      const user = await this.userService.create(body.email, hashedPassword);
+      return {
+        message: 'User registered successfully',
+        user: {
+          id: user.id,
+          email: user.email,
+        },
+      };
+    } catch (err) {
+      // Fallback: handle unique constraint race-condition
+      if (err && (err.code === '23505' || err?.detail?.includes('already exists'))) {
+        throw new ConflictException('Email already exists');
+      }
+      throw err;
+    }
   }
 
 
@@ -226,7 +246,7 @@ export class AuthController {
       },
     },
   })
-  async login(@Body() body: { email: string; password: string }) {
+  async login(@Body() body: import('./dto/login.dto').LoginDto) {
     const user = await this.authService.validateUser(body.email, body.password);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -247,7 +267,8 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @ApiBody({ schema: { properties: { refresh_token: { type: 'string' } } } })
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Returns new access token using refresh token (Bearer)' })
   @ApiResponse({
     status: 201,
     description: 'Returns new access token.',
@@ -272,14 +293,19 @@ export class AuthController {
       },
     },
   })
-  async refresh(@Body() body: { refresh_token: string }) {
+  async refresh(@Request() req) {
     try {
-      const payload = this.jwtService.verify(body.refresh_token, { secret: this.configService.get('REFRESH_SECRET') });
-      const user = await this.userService.findByRefreshToken(body.refresh_token);
-      if (!user || !user.refreshToken || user.refreshToken !== body.refresh_token) {
+      const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+      if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+        throw new UnauthorizedException('Missing or invalid Authorization header');
+      }
+      const token = authHeader.substring(7).trim();
+
+      const payload = this.jwtService.verify(token, { secret: this.configService.get('REFRESH_SECRET') });
+      const user = await this.userService.findByRefreshToken(token);
+      if (!user || !user.refreshToken || user.refreshToken !== token) {
         throw new UnauthorizedException('Refresh token invalid or already logged out');
       }
-      // Generate access token baru
       const loginResult = await this.authService.login(user);
       return {
         message: 'Token refreshed successfully',
@@ -298,26 +324,65 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Logout success',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            message: { type: 'string', example: 'Logout success' },
-          },
-        },
-      },
-    },
+    type: LogoutSuccessDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request. Invalid JWT payload or user already logged out.',
+    type: LogoutErrorDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'User not found.',
+    type: LogoutErrorDto,
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error during logout.',
+    type: LogoutErrorDto,
   })
   async logout(@Request() req) {
-    const email = req.user?.email;
-    if (!email) {
-      return { message: 'Invalid JWT payload: email not found' };
-    }
-    const user = await this.userService.findByEmail(email);
-    if (user) {
+    try {
+      const email = req.user?.email;
+      if (!email) {
+        throw new BadRequestException({
+          message: 'Logout failed',
+          error: 'Invalid JWT payload: email not found'
+        });
+      }
+
+      const user = await this.userService.findByEmail(email);
+      if (!user) {
+        throw new UnauthorizedException({
+          message: 'Logout failed',
+          error: 'User not found'
+        });
+      }
+
+      // Check if user is already logged out
+      const isAlreadyLoggedOut = await this.userService.isUserLoggedOut(user.id);
+      if (isAlreadyLoggedOut) {
+        throw new BadRequestException({
+          message: 'Logout failed',
+          error: 'User is already logged out'
+        });
+      }
+
+      // Invalidate refresh token by setting it to empty string
       await this.userService.setRefreshToken(user.id, '');
+      
+      return { message: 'Logout success' };
+    } catch (error) {
+      // If it's already a known exception, re-throw it
+      if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
+        throw error;
+      }
+      
+      // For any other errors, throw internal server error
+      throw new InternalServerErrorException({
+        message: 'Logout failed',
+        error: 'Internal server error during logout'
+      });
     }
-    return { message: 'Logout success' };
   }
 }

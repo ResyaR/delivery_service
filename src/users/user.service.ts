@@ -37,4 +37,9 @@ export class UserService {
   async findByRefreshToken(refreshToken: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { refreshToken } });
   }
+
+  async isUserLoggedOut(userId: number): Promise<boolean> {
+    const user = await this.findById(userId);
+    return !user || !user.refreshToken || user.refreshToken === '';
+  }
 }

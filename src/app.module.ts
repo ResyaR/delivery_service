@@ -6,6 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { DeliveryModule } from './delivery/delivery.module';
 import { UsersModule } from './users/user.module';
+import { DriverModule } from './drivers/driver.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -26,6 +27,7 @@ import { UsersModule } from './users/user.module';
     AuthModule,
     DeliveryModule,
     UsersModule,
+    DriverModule,
   ],
   controllers: [AppController],
   providers: [AppService],
