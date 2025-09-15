@@ -7,10 +7,21 @@ export function setupSwagger(app: INestApplication) {
     .setDescription('API documentation for MT trans')
     .setVersion('2.0')
     .addBearerAuth()
-    .addServer('http://localhost:5000')
+    .addServer('https://be-mt-trans.vercel.app')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   const customOptions: SwaggerCustomOptions = {
+    customSiteTitle: 'MT Trans API Docs',
+    explorer: true,
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      docExpansion: 'none',
+      filter: true,
+      showExtensions: true,
+      syntaxHighlight: true,
+      tryItOutEnabled: true
+    },
     customCss: `
       .swagger-ui .topbar { display: none; }
       .swagger-ui .opblock.opblock-get {
