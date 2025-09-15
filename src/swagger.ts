@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder, SwaggerCustomOptions } from '@nestjs/swagger';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 export function setupSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
@@ -9,38 +9,31 @@ export function setupSwagger(app: INestApplication) {
     .addBearerAuth()
     .addServer('https://be-mt-trans.vercel.app')
     .build();
+
   const document = SwaggerModule.createDocument(app, config);
-  const customOptions: SwaggerCustomOptions = {
+
+  SwaggerModule.setup('docs', app, document, {
     customSiteTitle: 'MT Trans API Docs',
     explorer: true,
+    customJs: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.min.js',
+    ],
+    customCssUrl: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
+    ],
     swaggerOptions: {
       persistAuthorization: true,
-      displayRequestDuration: true,
-      docExpansion: 'none',
-      filter: true,
+      layout: "BaseLayout",
+      deepLinking: true,
       showExtensions: true,
-      syntaxHighlight: true,
+      showCommonExtensions: true,
+      defaultModelsExpandDepth: 3,
+      defaultModelExpandDepth: 3,
+      displayOperationId: true,
+      displayRequestDuration: true,
+      filter: true,
       tryItOutEnabled: true
-    },
-    customCss: `
-      .swagger-ui .topbar { display: none; }
-      .swagger-ui .opblock.opblock-get {
-        border-color: #1e90ff;
-        background: #e6f2ff;
-      }
-      .swagger-ui .opblock.opblock-post {
-        border-color: #28a745;
-        background: #eafaf1;
-      }
-      .swagger-ui .opblock.opblock-put {
-        border-color: #ffc107;
-        background: #fffbe6;
-      }
-      .swagger-ui .opblock.opblock-delete {
-        border-color: #dc3545;
-        background: #fdeaea;
-      }
-    `,
-  };
-  SwaggerModule.setup('docs', app, document, customOptions);
+    }
+  });
 }
