@@ -55,6 +55,7 @@ export class UserController {
     }
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing admin token' })
+  @UseGuards()
   async getAllUsers() {
     const users = await this.userService.findAll();
     return users.map(user => ({
