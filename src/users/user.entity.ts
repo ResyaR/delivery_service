@@ -19,8 +19,11 @@ export class User {
   @Column({ nullable: true })
   phone?: string;
 
-  @Column({ nullable: true })
-  avatar?: string;
+  @Column({ 
+    type: 'bytea',
+    nullable: true 
+  })
+  avatar?: Buffer;
 
   @Column({ nullable: true })
   refreshToken?: string;
