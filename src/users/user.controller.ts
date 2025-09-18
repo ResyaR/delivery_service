@@ -24,6 +24,7 @@ import { UserService } from './user.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { AdminTokenDto } from '../common/dto/admin-token.dto';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -32,8 +33,9 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get('admin/all')
+  @Post('admin/all')
   @ApiOperation({ summary: 'Get all users with their activity information (Requires admin token)' })
+  @ApiBody({ type: AdminTokenDto })
   @ApiResponse({ 
     status: 200, 
     description: 'List of all users with their activity information',
@@ -54,9 +56,9 @@ export class UserController {
       }
     }
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing admin token' })
-  @UseGuards()
-  async getAllUsers() {
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid admin token' })
+  @ApiResponse({ status: 400, description: 'Bad Request - Invalid token format' })
+  async getAllUsers(@Body() adminTokenDto: AdminTokenDto) {
     const users = await this.userService.findAll();
     return users.map(user => ({
       id: user.id,
