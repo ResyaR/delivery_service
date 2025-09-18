@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
@@ -41,5 +41,14 @@ export class UserService {
   async isUserLoggedOut(userId: number): Promise<boolean> {
     const user = await this.findById(userId);
     return !user || !user.refreshToken || user.refreshToken === '';
+  }
+
+  async deleteUser(userId: number): Promise<void> {
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User tidak ditemukan');
+    }
+
+    await this.userRepository.remove(user);
   }
 }

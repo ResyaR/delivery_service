@@ -7,19 +7,22 @@ import {
   Request, 
   Post,
   Get,
+  Delete,
   Param,
   Res,
   UploadedFile, 
   UseInterceptors,
   BadRequestException,
   InternalServerErrorException,
-  NotFoundException
+  NotFoundException,
+  HttpStatus
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserService } from './user.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { DeleteUserDto } from './dto/delete-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('users')
@@ -29,35 +32,74 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get('profile/avatar/:id')
-  @ApiOperation({ summary: 'Get user avatar' })
+  @Delete('delete')
+  @ApiOperation({ summary: 'Delete user account' })
+  @ApiBody({ type: () => DeleteUserDto })
   @ApiResponse({ 
-    status: 200, 
-    description: 'Avatar retrieved successfully.',
-    content: {
-      'image/*': {
-        schema: {
+    status: HttpStatus.OK,
+    description: 'User berhasil dihapus.',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { 
           type: 'string',
-          format: 'binary'
+          example: 'User berhasil dihapus'
         }
       }
     }
   })
-  @ApiResponse({ status: 404, description: 'Avatar not found.' })
-  async getAvatar(@Param('id') id: number, @Res() res: Response) {
-    const user = await this.userService.findById(id);
-    
-    if (!user || !user.avatar) {
-      throw new NotFoundException('Avatar not found');
+  @ApiResponse({ 
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Kata kunci konfirmasi tidak valid.',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { 
+          type: 'string',
+          example: 'Kata kunci tidak valid. Kata kunci yang benar adalah: "resya 123"'
+        },
+        error: {
+          type: 'string',
+          example: 'Bad Request'
+        }
+      }
     }
-
-    res.set({
-      'Content-Type': 'image/jpeg', // Sesuaikan dengan tipe file yang disimpan
-      'Content-Length': user.avatar.length,
-    });
-
-    res.end(user.avatar);
+  })
+  @ApiResponse({ 
+    status: HttpStatus.NOT_FOUND,
+    description: 'User tidak ditemukan.',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { 
+          type: 'string',
+          example: 'User tidak ditemukan'
+        },
+        error: {
+          type: 'string',
+          example: 'Not Found'
+        }
+      }
+    }
+  })
+  async deleteUser(
+    @Request() req,
+    @Body() deleteUserDto: DeleteUserDto
+  ) {
+    try {
+      await this.userService.deleteUser(req.user.id);
+      return {
+        message: 'User berhasil dihapus'
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Gagal menghapus user');
+    }
   }
+
+
 
   @Put('profile')
   @ApiOperation({ summary: 'Update user profile (nama, phone)' })
@@ -148,21 +190,6 @@ export class UserController {
       },
     },
   })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error.',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            error: { type: 'string', example: 'Internal Server Error' },
-            message: { type: 'string', example: 'Internal server error' },
-          },
-        },
-      },
-    },
-  })
   @UseInterceptors(
     FileInterceptor('avatar', {
       limits: {
@@ -182,9 +209,16 @@ export class UserController {
     }
 
     try {
-      // Update avatar di database sebagai BLOB
+      // Generate unique filename
+      const fileName = `avatar-${req.user.id}-${Date.now()}.${file.originalname.split('.').pop()}`;
+      
+      // Save file to public directory (this is just an example, in production you might want to use cloud storage)
+      const filePath = `/uploads/avatars/${fileName}`;
+      await this.saveFile(file.buffer, filePath);
+
+      // Update avatar URL in database
       const updated = await this.userService.updateProfile(req.user.id, {
-        avatar: file.buffer
+        avatar: `${process.env.APP_URL}${filePath}`
       });
 
       if (!updated) {
@@ -196,12 +230,28 @@ export class UserController {
         data: {
           id: updated.id,
           email: updated.email,
-          avatarSize: file.size,
-          mimeType: file.mimetype
+          avatarUrl: updated.avatar
         }
       };
     } catch (error) {
       throw new InternalServerErrorException('Gagal menyimpan avatar');
     }
+  }
+
+  private async saveFile(buffer: Buffer, filePath: string): Promise<void> {
+    // This is a simplified example. In production, use proper file storage service
+    const fs = require('fs');
+    const path = require('path');
+    
+    const fullPath = path.join(process.cwd(), 'public', filePath);
+    const directory = path.dirname(fullPath);
+    
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(directory)) {
+      fs.mkdirSync(directory, { recursive: true });
+    }
+    
+    // Save file
+    await fs.promises.writeFile(fullPath, buffer);
   }
 }
