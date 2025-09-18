@@ -24,4 +24,13 @@ export class User {
 
   @Column({ nullable: true })
   refreshToken?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastLogin?: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastLogout?: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastRequestRefreshToken?: Date;
 }

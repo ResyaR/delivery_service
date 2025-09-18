@@ -32,6 +32,43 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Get('admin/all')
+  @ApiOperation({ summary: 'Get all users with their activity information (Requires admin token)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'List of all users with their activity information',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'number' },
+          email: { type: 'string' },
+          fullName: { type: 'string' },
+          phone: { type: 'string' },
+          avatar: { type: 'string' },
+          lastLogin: { type: 'string', format: 'date-time' },
+          lastLogout: { type: 'string', format: 'date-time' },
+          lastRequestRefreshToken: { type: 'string', format: 'date-time' }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing admin token' })
+  async getAllUsers() {
+    const users = await this.userService.findAll();
+    return users.map(user => ({
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      phone: user.phone,
+      avatar: user.avatar,
+      lastLogin: user.lastLogin,
+      lastLogout: user.lastLogout,
+      lastRequestRefreshToken: user.lastRequestRefreshToken
+    }));
+  }
+
   @Delete('delete')
   @ApiOperation({ summary: 'Delete user account' })
   @ApiBody({ type: () => DeleteUserDto })

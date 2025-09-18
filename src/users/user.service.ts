@@ -20,6 +20,29 @@ export class UserService {
     return this.userRepository.findOne({ where: { id } });
   }
 
+  async findAll(): Promise<User[]> {
+    return this.userRepository.find();
+  }
+
+  async updateLoginStatus(userId: number): Promise<void> {
+    await this.userRepository.update(userId, { 
+      lastLogin: new Date() 
+    });
+  }
+
+  async updateLogoutStatus(userId: number): Promise<void> {
+    await this.userRepository.update(userId, { 
+      lastLogout: new Date(),
+      refreshToken: undefined 
+    });
+  }
+
+  async updateRefreshTokenRequest(userId: number): Promise<void> {
+    await this.userRepository.update(userId, { 
+      lastRequestRefreshToken: new Date() 
+    });
+  }
+
   async updateProfile(id: number, dto: Partial<User>): Promise<User | null> {
     await this.userRepository.update(id, dto);
     return this.findById(id);
