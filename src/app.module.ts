@@ -21,6 +21,10 @@ import { DriverModule } from './drivers/driver.module';
         database: configService.get('DB_DATABASE'),
         autoLoadEntities: true,
         synchronize: true,
+        extra: {
+          max: 5,
+          poolSize: 5,
+        },
       }),
       inject: [ConfigService],
     }),
