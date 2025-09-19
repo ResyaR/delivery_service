@@ -368,10 +368,8 @@ export class AuthController {
         });
       }
 
-      // Invalidate refresh token by setting it to empty string
-      await this.userService.setRefreshToken(user.id, '');
-      
-      return { message: 'Logout success' };
+      // Call auth service logout
+      return this.authService.logout(user.id);
     } catch (error) {
       // If it's already a known exception, re-throw it
       if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
