@@ -27,8 +27,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminTokenDto } from '../common/dto/admin-token.dto';
 
 @ApiTags('users')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -73,6 +71,8 @@ export class UserController {
   }
 
   @Delete('delete')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete user account' })
   @ApiBody({ type: () => DeleteUserDto })
   @ApiResponse({ 
@@ -142,6 +142,8 @@ export class UserController {
 
 
   @Put('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update user profile (nama, phone)' })
   @ApiBody({ type: UpdateProfileDto })
   @ApiResponse({ status: 200, description: 'Profile updated successfully.' })
@@ -186,6 +188,8 @@ export class UserController {
   }
 
   @Post('profile/avatar')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update user avatar' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
