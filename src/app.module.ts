@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { DeliveryModule } from './delivery/delivery.module';
 import { UsersModule } from './users/user.module';
 import { DriverModule } from './drivers/driver.module';
+import { AdminModule } from './admin/admin.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -20,7 +21,9 @@ import { DriverModule } from './drivers/driver.module';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: false, // set to false when using migrations
+        migrations: [__dirname + '/migrations/*.{js,ts}'],
+        migrationsRun: true, // automatically run migrations
         extra: {
           max: 5,
           poolSize: 5,
@@ -32,6 +35,7 @@ import { DriverModule } from './drivers/driver.module';
     DeliveryModule,
     UsersModule,
     DriverModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

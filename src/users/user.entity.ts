@@ -9,8 +9,14 @@ export class User {
   @Column({ unique: true })
   email: string;
 
+  @Column({ unique: true })
+  username: string;
+
   @Column()
   password: string;
+
+  @Column({ default: false })
+  isAdmin: boolean;
 
   @Column({ nullable: true })
   fullName?: string;
@@ -33,4 +39,7 @@ export class User {
 
   @Column({ type: 'timestamp', nullable: true })
   lastRequestRefreshToken?: Date;
+
+  @Column({ default: false })
+  isVerified: boolean;
 }
