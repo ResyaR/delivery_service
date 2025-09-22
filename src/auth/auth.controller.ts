@@ -1,5 +1,7 @@
 import { Controller, Post, Body, UnauthorizedException, ConflictException, BadRequestException, UseGuards, Request, Get, Inject, InternalServerErrorException } from '@nestjs/common';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ApiTags, ApiBody, ApiResponse, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthService } from './auth.service';
 import { UserService } from '../users/user.service';
 import * as bcrypt from 'bcryptjs';
@@ -11,6 +13,51 @@ import { LogoutSuccessDto, LogoutErrorDto } from './dto/logout.dto';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
+  @Post('token')
+  @ApiOperation({ summary: 'Login using access token' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully authenticated with token',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'number' },
+                email: { type: 'string' },
+                fullName: { type: 'string' },
+                phone: { type: 'string' },
+              }
+            },
+            message: { type: 'string' }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid or expired token'
+  })
+  async loginWithToken(@Request() req) {
+    // Token sudah divalidasi oleh JwtAuthGuard
+    const user = req.user;
+    return {
+      message: 'Successfully authenticated',
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        phone: user.phone
+      }
+    };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   @ApiBearerAuth()
@@ -87,7 +134,29 @@ export class AuthController {
 
 
   @Post('register')
-  @ApiBody({ schema: { properties: { email: { type: 'string', format: 'email' }, password: { type: 'string' } } } })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['email', 'password', 'username'],
+      properties: {
+        email: { type: 'string', format: 'email', example: 'user@example.com' },
+        username: { 
+          type: 'string',
+          example: 'johndoe123',
+          pattern: '^[a-zA-Z0-9_]+$',
+          minLength: 4,
+          description: 'Username must be unique and contain only letters, numbers, and underscores'
+        },
+        password: { 
+          type: 'string',
+          format: 'password',
+          example: 'StrongP@ss123',
+          minLength: 8,
+          description: 'Must contain at least 8 characters including uppercase, lowercase, number, and special character'
+        }
+      }
+    }
+  })
   @ApiResponse({
     status: 201,
     description: 'User registered successfully.',
@@ -102,6 +171,7 @@ export class AuthController {
               properties: {
                 id: { type: 'number', example: 1 },
                 email: { type: 'string', example: 'user@email.com' },
+                username: { type: 'string', example: 'johndoe123' },
               },
             },
           },
@@ -126,14 +196,14 @@ export class AuthController {
   })
   @ApiResponse({
     status: 409,
-    description: 'Conflict. Email already exists.',
+    description: 'Conflict. Email or username already exists.',
     content: {
       'application/json': {
         schema: {
           type: 'object',
           properties: {
             error: { type: 'string', example: 'Conflict' },
-            message: { type: 'string', example: 'Email already exists' },
+            message: { type: 'string', example: 'Email or username already exists' },
           },
         },
       },
@@ -160,28 +230,109 @@ export class AuthController {
       throw new BadRequestException('Email and password are required');
     }
 
-    // Check if email already exists to return 409 gracefully
+    // Check if email already exists and is verified
     const existing = await this.userService.findByEmail(body.email);
-    if (existing) {
-      throw new ConflictException('Email already exists');
+    if (existing && existing.isVerified) {
+      throw new ConflictException('Email already exists and verified');
+    }
+    
+    // If email exists but not verified, delete the unverified user
+    if (existing && !existing.isVerified) {
+      await this.userService.deleteUser(existing.id);
     }
 
-    const hashedPassword = await bcrypt.hash(body.password, 10);
     try {
-      const user = await this.userService.create(body.email, hashedPassword);
+      // Store pending registration
+      const hashedPassword = await bcrypt.hash(body.password, 10);
+      await this.userService.createPendingUser(body.email, body.username, hashedPassword);
+
+      try {
+        // Send verification OTP
+        await this.authService.sendVerificationOTP(body.email);
+
+        return {
+          message: 'Verification OTP sent to your email',
+          email: body.email
+        };
+      } catch (emailErr) {
+        // If email sending fails, clean up the pending user
+        try {
+          const user = await this.userService.findByEmail(body.email);
+          if (user) {
+            await this.userService.deleteUser(user.id);
+          }
+        } catch (cleanupErr) {
+          console.error('Failed to cleanup pending user:', cleanupErr);
+        }
+
+        console.error('Email sending error details:', emailErr);
+        throw new InternalServerErrorException({
+          message: 'Failed to send verification email',
+          details: emailErr.message || 'Unknown error',
+          error: 'Internal Server Error'
+        });
+      }
+    } catch (err) {
+      console.error('Registration error:', err);
+      if (err instanceof InternalServerErrorException) {
+        throw err;
+      }
+      throw new InternalServerErrorException({
+        message: 'Registration failed',
+        details: err.message || 'Unknown error',
+        error: 'Internal Server Error'
+      });
+    }
+  }
+
+  @Post('verify-otp')
+  @ApiOperation({ summary: 'Verify email using OTP code' })
+  @ApiResponse({
+    status: 201,
+    description: 'Email verified successfully and user registered'
+  })
+  async verifyOTP(@Body() verifyOtpDto: VerifyOtpDto) {
+    try {
+      // Verify OTP
+      const isValid = await this.authService.verifyOTP(
+        verifyOtpDto.email,
+        verifyOtpDto.otp
+      );
+
+      if (!isValid) {
+        throw new BadRequestException('Invalid OTP');
+      }
+
+      // Create user after verification
+      const pendingUser = await this.userService.findPendingUser(verifyOtpDto.email);
+      if (!pendingUser) {
+        throw new BadRequestException('No pending registration found');
+      }
+
+      // Create the verified user
+      const user = await this.userService.create(pendingUser.email, pendingUser.username, pendingUser.password);
+
+      try {
+        // Delete the pending user after successful creation
+        await this.userService.deletePendingUser(verifyOtpDto.email);
+      } catch (err) {
+        console.error('Error cleaning up pending user:', err);
+        // Don't throw error here as the user is already created
+      }
+
       return {
-        message: 'User registered successfully',
+        message: 'Email verified and user registered successfully',
         user: {
           id: user.id,
           email: user.email,
-        },
+          username: user.username // Include username in response
+        }
       };
     } catch (err) {
-      // Fallback: handle unique constraint race-condition
-      if (err && (err.code === '23505' || err?.detail?.includes('already exists'))) {
-        throw new ConflictException('Email already exists');
+      if (err instanceof BadRequestException) {
+        throw err;
       }
-      throw err;
+      throw new InternalServerErrorException('Failed to verify email');
     }
   }
 
@@ -253,7 +404,7 @@ export class AuthController {
     }
     // Generate refresh token dengan expired berbeda (30 hari)
     const refreshToken = this.jwtService.sign(
-      { sub: user.id, email: user.email },
+      { sub: user.id, email: user.email, username: user.username },
       { secret: this.configService.get('REFRESH_SECRET'), expiresIn: '30d' }
     );
     await this.userService.setRefreshToken(user.id, refreshToken);
@@ -267,53 +418,31 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Returns new access token using refresh token (Bearer)' })
+  @ApiOperation({ summary: 'Get new access token using refresh token' })
+  @ApiBody({ type: RefreshTokenDto })
   @ApiResponse({
     status: 201,
-    description: 'Returns new access token.',
+    description: 'Token refreshed successfully.',
     content: {
       'application/json': {
         schema: {
           type: 'object',
           properties: {
-            message: { type: 'string', example: 'Token refreshed successfully' },
-            access_token: { type: 'string', example: 'jwt-access-token' },
-            expires_in: { type: 'number', example: 1200 },
-            token_type: { type: 'string', example: 'Bearer' },
-            user: {
-              type: 'object',
-              properties: {
-                id: { type: 'number', example: 1 },
-                username: { type: 'string', example: 'string' },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
-  async refresh(@Request() req) {
-    try {
-      const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-      if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
-        throw new UnauthorizedException('Missing or invalid Authorization header');
+            access_token: { type: 'string', example: 'new.access.token' },
+            refresh_token: { type: 'string', example: 'new.refresh.token' },
+            expires_in: { type: 'number', example: 900 },
+            token_type: { type: 'string', example: 'Bearer' }
+          }
+        }
       }
-      const token = authHeader.substring(7).trim();
-
-      const payload = this.jwtService.verify(token, { secret: this.configService.get('REFRESH_SECRET') });
-      const user = await this.userService.findByRefreshToken(token);
-      if (!user || !user.refreshToken || user.refreshToken !== token) {
-        throw new UnauthorizedException('Refresh token invalid or already logged out');
-      }
-      const loginResult = await this.authService.login(user);
-      return {
-        message: 'Token refreshed successfully',
-        ...loginResult,
-      };
-    } catch (e) {
-      throw new UnauthorizedException('Invalid refresh token');
     }
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid refresh token'
+  })
+  async refresh(@Body() body: RefreshTokenDto) {
+    return this.authService.refreshToken(body.refresh_token);
   }
 
 
@@ -368,8 +497,19 @@ export class AuthController {
         });
       }
 
-      // Call auth service logout
-      return this.authService.logout(user.id);
+      const accessToken = req.headers.authorization?.split(' ')[1];
+      const refreshToken = user.refreshToken;
+      
+      if (!accessToken) {
+        throw new BadRequestException('Access token not found');
+      }
+
+      // Call auth service logout with both tokens
+      return this.authService.logout(
+        user.id,
+        accessToken,
+        refreshToken || '' // Handle case where refresh token might be null
+      );
     } catch (error) {
       // If it's already a known exception, re-throw it
       if (error instanceof BadRequestException || error instanceof UnauthorizedException) {

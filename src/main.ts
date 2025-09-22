@@ -12,7 +12,9 @@ async function bootstrap() {
   const server = express();
   const adapter = new ExpressAdapter(server);
   
-  app = await NestFactory.create(AppModule, adapter);
+  app = await NestFactory.create(AppModule, adapter, {
+    logger: ['error', 'warn'], // Only show errors and warnings
+  });
   
   // Enable CORS
   app.enableCors({
