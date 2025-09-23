@@ -405,12 +405,11 @@ export class AuthController {
     // Generate refresh token dengan expired berbeda (30 hari)
     const refreshToken = this.jwtService.sign(
       { sub: user.id, email: user.email, username: user.username },
-      { secret: this.configService.get('REFRESH_SECRET'), expiresIn: '30d' }
+      { secret: this.configService.get('JWT_REFRESH_SECRET'), expiresIn: '30d' }
     );
     await this.userService.setRefreshToken(user.id, refreshToken);
     const loginResult = await this.authService.login(user);
     return {
-      message: 'Login success',
       ...loginResult,
       refresh_token: refreshToken,
       refresh_token_expires_in: 30 * 24 * 60 * 60, // 30 hari dalam detik
