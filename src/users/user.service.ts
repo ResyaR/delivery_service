@@ -63,7 +63,10 @@ export class UserService {
 
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } });
+    return this.userRepository.findOne({ 
+      where: { email },
+      select: ['id', 'email', 'password', 'username', 'isAdmin', 'isVerified', 'fullName', 'phone', 'avatar', 'refreshToken']
+    });
   }
 
   async setRefreshToken(userId: number, refreshToken: string): Promise<void> {

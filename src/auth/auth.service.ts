@@ -116,7 +116,7 @@ export class AuthService {
     }
 
     if (await bcrypt.compare(password, user.password)) {
-      const { password, ...result } = user;
+      const { password: hashedPassword, ...result } = user;
       return result;
     }
     return null;
@@ -199,10 +199,17 @@ export class AuthService {
     await this.userService.updateRefreshTokenRequest(user.id);
 
     return {
+      message: 'Login success',
       access_token,
       refresh_token,
+      refresh_token_expires_in: 7 * 24 * 60 * 60, // 7 days in seconds
       expires_in: 15 * 60, // 15 minutes in seconds
-      token_type: 'Bearer'
+      token_type: 'Bearer',
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username
+      }
     };
   }
 
@@ -226,10 +233,16 @@ export class AuthService {
       await this.userService.setRefreshToken(user.id, new_refresh_token);
 
       return {
+        message: 'Token refreshed successfully',
         access_token,
         refresh_token: new_refresh_token,
         expires_in: 15 * 60,
-        token_type: 'Bearer'
+        token_type: 'Bearer',
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username
+        }
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
