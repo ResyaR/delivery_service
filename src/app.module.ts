@@ -8,6 +8,7 @@ import { DeliveryModule } from './delivery/delivery.module';
 import { UsersModule } from './users/user.module';
 import { DriverModule } from './drivers/driver.module';
 import { AdminModule } from './admin/admin.module';
+import { OngkirModule } from './ongkir/ongkir.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -36,6 +37,7 @@ import { AdminModule } from './admin/admin.module';
     UsersModule,
     DriverModule,
     AdminModule,
+    OngkirModule,
   ],
   controllers: [AppController],
   providers: [AppService],

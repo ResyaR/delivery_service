@@ -8,13 +8,34 @@ export declare class UserController {
     getAllUsers(adminTokenDto: AdminTokenDto): Promise<{
         id: number;
         email: string;
+        username: string;
         fullName: string | undefined;
         phone: string | undefined;
         avatar: string | undefined;
         lastLogin: Date | undefined;
         lastLogout: Date | undefined;
         lastRequestRefreshToken: Date | undefined;
+        createdAt: Date;
+        updatedAt: Date;
     }[]>;
+    updateUserByAdmin(id: number, updateData: {
+        fullName?: string;
+        phone?: string;
+        avatar?: string;
+    }): Promise<{
+        message: string;
+        user: {
+            id: number;
+            email: string;
+            fullName: string | undefined;
+            phone: string | undefined;
+            avatar: string | undefined;
+        };
+    }>;
+    deleteUserByAdmin(id: number): Promise<{
+        message: string;
+        userId: number;
+    }>;
     deleteUser(req: any, deleteUserDto: DeleteUserDto): Promise<{
         message: string;
     }>;

@@ -2,6 +2,7 @@ import { Controller, Post, Body, UnauthorizedException, ConflictException, BadRe
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ApiTags, ApiBody, ApiResponse, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { AuthService } from './auth.service';
 import { UserService } from '../users/user.service';
 import * as bcrypt from 'bcryptjs';
@@ -230,15 +231,22 @@ export class AuthController {
       throw new BadRequestException('Email and password are required');
     }
 
-    // Check if email already exists and is verified
-    const existing = await this.userService.findByEmail(body.email);
-    if (existing && existing.isVerified) {
+    // Check if email already exists and is verified in user table
+    const existingUser = await this.userService.findByEmail(body.email);
+    if (existingUser && existingUser.isVerified) {
       throw new ConflictException('Email already exists and verified');
     }
     
-    // If email exists but not verified, delete the unverified user
-    if (existing && !existing.isVerified) {
-      await this.userService.deleteUser(existing.id);
+    // If email exists but not verified in user table, delete the unverified user
+    if (existingUser && !existingUser.isVerified) {
+      await this.userService.deleteUser(existingUser.id);
+    }
+
+    // Check if email already exists in pending_user table
+    const existingPendingUser = await this.userService.findPendingUser(body.email);
+    if (existingPendingUser) {
+      // Delete existing pending user to allow new registration
+      await this.userService.deletePendingUser(body.email);
     }
 
     try {
@@ -334,6 +342,36 @@ export class AuthController {
       }
       throw new InternalServerErrorException('Failed to verify email');
     }
+  }
+
+  @Post('resend-otp')
+  @ApiOperation({ summary: 'Resend OTP code to email' })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP resent successfully'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - email not found or already verified'
+  })
+  async resendOTP(@Body() body: ResendOtpDto) {
+    if (!body.email) {
+      throw new BadRequestException('Email is required');
+    }
+
+    // Check if there's a pending user
+    const pendingUser = await this.userService.findPendingUser(body.email);
+    if (!pendingUser) {
+      throw new BadRequestException('No pending registration found for this email');
+    }
+
+    // Send new OTP
+    await this.authService.sendVerificationOTP(body.email);
+
+    return {
+      message: 'Verification OTP sent to your email',
+      email: body.email
+    };
   }
 
 

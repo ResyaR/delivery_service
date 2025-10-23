@@ -12,4 +12,6 @@ export declare class User {
     lastLogout?: Date;
     lastRequestRefreshToken?: Date;
     isVerified: boolean;
+    createdAt: Date;
+    updatedAt: Date;
 }
