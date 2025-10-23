@@ -30,13 +30,47 @@ let UserController = class UserController {
         return users.map(user => ({
             id: user.id,
             email: user.email,
+            username: user.username,
             fullName: user.fullName,
             phone: user.phone,
             avatar: user.avatar,
             lastLogin: user.lastLogin,
             lastLogout: user.lastLogout,
-            lastRequestRefreshToken: user.lastRequestRefreshToken
+            lastRequestRefreshToken: user.lastRequestRefreshToken,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
         }));
+    }
+    async updateUserByAdmin(id, updateData) {
+        const user = await this.userService.findById(id);
+        if (!user) {
+            throw new Error('User not found');
+        }
+        const updatedUser = await this.userService.updateProfile(id, updateData);
+        if (!updatedUser) {
+            throw new Error('Failed to update user');
+        }
+        return {
+            message: 'User updated successfully',
+            user: {
+                id: updatedUser.id,
+                email: updatedUser.email,
+                fullName: updatedUser.fullName,
+                phone: updatedUser.phone,
+                avatar: updatedUser.avatar
+            }
+        };
+    }
+    async deleteUserByAdmin(id) {
+        const user = await this.userService.findById(id);
+        if (!user) {
+            throw new Error('User not found');
+        }
+        await this.userService.deleteUser(id);
+        return {
+            message: 'User deleted successfully',
+            userId: id
+        };
     }
     async deleteUser(req, deleteUserDto) {
         try {
@@ -113,12 +147,15 @@ __decorate([
                 properties: {
                     id: { type: 'number' },
                     email: { type: 'string' },
+                    username: { type: 'string' },
                     fullName: { type: 'string' },
                     phone: { type: 'string' },
                     avatar: { type: 'string' },
                     lastLogin: { type: 'string', format: 'date-time' },
                     lastLogout: { type: 'string', format: 'date-time' },
-                    lastRequestRefreshToken: { type: 'string', format: 'date-time' }
+                    lastRequestRefreshToken: { type: 'string', format: 'date-time' },
+                    createdAt: { type: 'string', format: 'date-time' },
+                    updatedAt: { type: 'string', format: 'date-time' }
                 }
             }
         }
@@ -130,6 +167,25 @@ __decorate([
     __metadata("design:paramtypes", [admin_token_dto_1.AdminTokenDto]),
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "getAllUsers", null);
+__decorate([
+    (0, common_1.Put)('admin/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update user by admin' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'User updated successfully' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "updateUserByAdmin", null);
+__decorate([
+    (0, common_1.Delete)('admin/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete user by admin' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'User deleted successfully' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "deleteUserByAdmin", null);
 __decorate([
     (0, common_1.Delete)('delete'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

@@ -50,6 +50,7 @@ const common_1 = require("@nestjs/common");
 const verify_otp_dto_1 = require("./dto/verify-otp.dto");
 const swagger_1 = require("@nestjs/swagger");
 const refresh_token_dto_1 = require("./dto/refresh-token.dto");
+const resend_otp_dto_1 = require("./dto/resend-otp.dto");
 const auth_service_1 = require("./auth.service");
 const user_service_1 = require("../users/user.service");
 const bcrypt = __importStar(require("bcryptjs"));
@@ -93,12 +94,16 @@ let AuthController = class AuthController {
         if (!body?.email || !body?.password) {
             throw new common_1.BadRequestException('Email and password are required');
         }
-        const existing = await this.userService.findByEmail(body.email);
-        if (existing && existing.isVerified) {
+        const existingUser = await this.userService.findByEmail(body.email);
+        if (existingUser && existingUser.isVerified) {
             throw new common_1.ConflictException('Email already exists and verified');
         }
-        if (existing && !existing.isVerified) {
-            await this.userService.deleteUser(existing.id);
+        if (existingUser && !existingUser.isVerified) {
+            await this.userService.deleteUser(existingUser.id);
+        }
+        const existingPendingUser = await this.userService.findPendingUser(body.email);
+        if (existingPendingUser) {
+            await this.userService.deletePendingUser(body.email);
         }
         try {
             const hashedPassword = await bcrypt.hash(body.password, 10);
@@ -172,6 +177,20 @@ let AuthController = class AuthController {
             }
             throw new common_1.InternalServerErrorException('Failed to verify email');
         }
+    }
+    async resendOTP(body) {
+        if (!body.email) {
+            throw new common_1.BadRequestException('Email is required');
+        }
+        const pendingUser = await this.userService.findPendingUser(body.email);
+        if (!pendingUser) {
+            throw new common_1.BadRequestException('No pending registration found for this email');
+        }
+        await this.authService.sendVerificationOTP(body.email);
+        return {
+            message: 'Verification OTP sent to your email',
+            email: body.email
+        };
     }
     async login(body) {
         const user = await this.authService.validateUser(body.email, body.password);
@@ -437,6 +456,22 @@ __decorate([
     __metadata("design:paramtypes", [verify_otp_dto_1.VerifyOtpDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "verifyOTP", null);
+__decorate([
+    (0, common_1.Post)('resend-otp'),
+    (0, swagger_1.ApiOperation)({ summary: 'Resend OTP code to email' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'OTP resent successfully'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'Bad request - email not found or already verified'
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [resend_otp_dto_1.ResendOtpDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resendOTP", null);
 __decorate([
     (0, common_1.Post)('login'),
     (0, swagger_1.ApiBody)({ schema: { properties: { email: { type: 'string', format: 'email' }, password: { type: 'string' } } } }),

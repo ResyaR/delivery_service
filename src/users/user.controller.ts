@@ -44,12 +44,15 @@ export class UserController {
         properties: {
           id: { type: 'number' },
           email: { type: 'string' },
+          username: { type: 'string' },
           fullName: { type: 'string' },
           phone: { type: 'string' },
           avatar: { type: 'string' },
           lastLogin: { type: 'string', format: 'date-time' },
           lastLogout: { type: 'string', format: 'date-time' },
-          lastRequestRefreshToken: { type: 'string', format: 'date-time' }
+          lastRequestRefreshToken: { type: 'string', format: 'date-time' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' }
         }
       }
     }
@@ -61,13 +64,65 @@ export class UserController {
     return users.map(user => ({
       id: user.id,
       email: user.email,
+      username: user.username,
       fullName: user.fullName,
       phone: user.phone,
       avatar: user.avatar,
       lastLogin: user.lastLogin,
       lastLogout: user.lastLogout,
-      lastRequestRefreshToken: user.lastRequestRefreshToken
+      lastRequestRefreshToken: user.lastRequestRefreshToken,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     }));
+  }
+
+  @Put('admin/:id')
+  @ApiOperation({ summary: 'Update user by admin' })
+  @ApiResponse({ status: 200, description: 'User updated successfully' })
+  async updateUserByAdmin(
+    @Param('id') id: number,
+    @Body() updateData: { fullName?: string; phone?: string; avatar?: string }
+  ) {
+    const user = await this.userService.findById(id);
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const updatedUser = await this.userService.updateProfile(id, updateData);
+
+    if (!updatedUser) {
+      throw new Error('Failed to update user');
+    }
+
+    return {
+      message: 'User updated successfully',
+      user: {
+        id: updatedUser!.id,
+        email: updatedUser!.email,
+        fullName: updatedUser!.fullName,
+        phone: updatedUser!.phone,
+        avatar: updatedUser!.avatar
+      }
+    };
+  }
+
+  @Delete('admin/:id')
+  @ApiOperation({ summary: 'Delete user by admin' })
+  @ApiResponse({ status: 200, description: 'User deleted successfully' })
+  async deleteUserByAdmin(@Param('id') id: number) {
+    const user = await this.userService.findById(id);
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    await this.userService.deleteUser(id);
+
+    return {
+      message: 'User deleted successfully',
+      userId: id
+    };
   }
 
   @Delete('delete')

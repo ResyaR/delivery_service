@@ -1,0 +1,48 @@
+export const defaultServices = [
+  {
+    id: 1,
+    name: 'Reguler',
+    description: 'Pengiriman reguler dengan estimasi 2-3 hari kerja',
+    estimasi: '2-3 hari',
+    baseRate: 5000,
+    multiplier: 1.0,
+    status: 'active',
+  },
+  {
+    id: 2,
+    name: 'Express',
+    description: 'Pengiriman cepat dengan estimasi 1 hari kerja',
+    estimasi: '1 hari',
+    baseRate: 10000,
+    multiplier: 1.5,
+    status: 'active',
+  },
+  {
+    id: 3,
+    name: 'Same Day',
+    description: 'Pengiriman di hari yang sama (dalam kota)',
+    estimasi: 'Hari ini',
+    baseRate: 15000,
+    multiplier: 2.0,
+    status: 'active',
+  },
+  {
+    id: 4,
+    name: 'Instant',
+    description: 'Pengiriman kilat dalam 2-3 jam (area tertentu)',
+    estimasi: '2-3 jam',
+    baseRate: 25000,
+    multiplier: 2.5,
+    status: 'active',
+  },
+  {
+    id: 5,
+    name: 'Ekonomis',
+    description: 'Pengiriman hemat dengan estimasi 3-5 hari kerja',
+    estimasi: '3-5 hari',
+    baseRate: 3000,
+    multiplier: 0.8,
+    status: 'active',
+  },
+];
+

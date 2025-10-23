@@ -1,5 +1,6 @@
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { AuthService } from './auth.service';
 import { UserService } from '../users/user.service';
 import { JwtService } from '@nestjs/jwt';
@@ -43,6 +44,10 @@ export declare class AuthController {
             email: string;
             username: string;
         };
+    }>;
+    resendOTP(body: ResendOtpDto): Promise<{
+        message: string;
+        email: string;
     }>;
     login(body: import('./dto/login.dto').LoginDto): Promise<{
         refresh_token: string;

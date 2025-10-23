@@ -17,6 +17,7 @@ const delivery_module_1 = require("./delivery/delivery.module");
 const user_module_1 = require("./users/user.module");
 const driver_module_1 = require("./drivers/driver.module");
 const admin_module_1 = require("./admin/admin.module");
+const ongkir_module_1 = require("./ongkir/ongkir.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -49,6 +50,7 @@ exports.AppModule = AppModule = __decorate([
             user_module_1.UsersModule,
             driver_module_1.DriverModule,
             admin_module_1.AdminModule,
+            ongkir_module_1.OngkirModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

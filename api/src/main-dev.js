@@ -17,9 +17,9 @@ async function bootstrap() {
         forbidNonWhitelisted: true,
     }));
     (0, swagger_1.setupSwagger)(app);
-    await app.listen(3000);
-    console.log(`Application is running on: http://localhost:3000`);
-    console.log(`Swagger documentation is available at: http://localhost:3000/api/docs`);
+    await app.listen(4000);
+    console.log(`Application is running on: http://localhost:4000`);
+    console.log(`Swagger documentation is available at: http://localhost:4000/api/docs`);
 }
 bootstrap();
 //# sourceMappingURL=main-dev.js.map
