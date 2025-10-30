@@ -11,6 +11,14 @@ const platform_express_1 = require("@nestjs/platform-express");
 const express_1 = __importDefault(require("express"));
 const common_1 = require("@nestjs/common");
 let app;
+let isShuttingDown = false;
+process.on('SIGTERM', async () => {
+    if (!isShuttingDown && app) {
+        isShuttingDown = true;
+        console.log('SIGTERM received, closing application...');
+        await app.close();
+    }
+});
 async function bootstrap() {
     const server = (0, express_1.default)();
     const adapter = new platform_express_1.ExpressAdapter(server);
@@ -42,6 +50,15 @@ async function handler(req, res) {
     }
     catch (error) {
         console.error('Handler error:', error);
+        if (app && !isShuttingDown) {
+            try {
+                await app.close();
+                app = null;
+            }
+            catch (closeError) {
+                console.error('Error closing app:', closeError);
+            }
+        }
         res.status(500).json({
             statusCode: 500,
             message: 'Internal server error',

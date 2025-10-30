@@ -16,6 +16,9 @@ import { DeliveryListResponseDto, DeliveryDetailResponseDto, DeliveryCreateRespo
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DeliveryType } from './dto/delivery-type.enum';
 import { DeliveryStatus } from './delivery.entity';
+import { CreateMultiDropDeliveryDto } from './dto/create-multi-drop.dto';
+import { CreateScheduledDeliveryDto } from './dto/create-scheduled-delivery.dto';
+import { CreatePaketBesarDto } from './dto/create-paket-besar.dto';
 
 @ApiTags('delivery')
 @ApiBearerAuth()
@@ -97,6 +100,101 @@ export class DeliveryController {
     return {
       message: 'Titip Beli request created',
       data: delivery
+    };
+  }
+
+  @Post('multi-drop')
+  @ApiOperation({ summary: 'Buat permintaan Multi-Drop (pengiriman ke multiple lokasi)' })
+  @ApiBody({ type: CreateMultiDropDeliveryDto })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Permintaan multi-drop berhasil dibuat.',
+    type: DeliveryCreateResponseDto
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error.'
+  })
+  async createMultiDrop(@Request() req, @Body() createDto: CreateMultiDropDeliveryDto): Promise<DeliveryCreateResponseDto> {
+    const delivery = await this.deliveryService.createMultiDropDelivery(req.user.id, createDto);
+    return {
+      message: 'Multi-Drop delivery request created',
+      data: delivery
+    };
+  }
+
+  @Post('scheduled')
+  @ApiOperation({ summary: 'Buat permintaan Jadwal Pengiriman (scheduled delivery)' })
+  @ApiBody({ type: CreateScheduledDeliveryDto })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Permintaan jadwal pengiriman berhasil dibuat.',
+    type: DeliveryCreateResponseDto
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error.'
+  })
+  async createScheduled(@Request() req, @Body() createDto: CreateScheduledDeliveryDto): Promise<DeliveryCreateResponseDto> {
+    const delivery = await this.deliveryService.createScheduledDelivery(req.user.id, createDto);
+    return {
+      message: 'Scheduled delivery request created',
+      data: delivery
+    };
+  }
+
+  @Post('paket-besar')
+  @ApiOperation({ summary: 'Buat permintaan Paket Besar/Ekspedisi Lokal' })
+  @ApiBody({ type: CreatePaketBesarDto })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Permintaan paket besar berhasil dibuat.',
+    type: DeliveryCreateResponseDto
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error.'
+  })
+  async createPaketBesar(@Request() req, @Body() createDto: CreatePaketBesarDto): Promise<DeliveryCreateResponseDto> {
+    const delivery = await this.deliveryService.createPaketBesarDelivery(req.user.id, createDto);
+    return {
+      message: 'Paket Besar delivery request created',
+      data: delivery
+    };
+  }
+
+  @Get(':id/drop-locations')
+  @ApiOperation({ summary: 'Ambil daftar lokasi drop untuk multi-drop delivery' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Daftar lokasi drop berhasil diambil.'
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized. Token tidak valid atau tidak ada.'
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Delivery not found.'
+  })
+  async getDropLocations(@Param('id') id: number) {
+    const locations = await this.deliveryService.getMultiDropLocations(Number(id));
+    return {
+      message: 'Drop locations fetched successfully',
+      data: locations
     };
   }
 

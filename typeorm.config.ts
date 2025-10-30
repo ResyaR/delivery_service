@@ -12,4 +12,15 @@ export default new DataSource({
   database: process.env.DB_DATABASE,
   entities: ['src/**/*.entity.ts'],
   migrations: ['src/migrations/*.ts'],
+  
+  // Connection pool configuration
+  extra: {
+    max: 20, // Maximum pool size
+    min: 5,  // Minimum pool size
+    idleTimeoutMillis: 30000, // Close idle connections after 30s
+    connectionTimeoutMillis: 2000, // Timeout for new connections
+  },
+  
+  // Enable connection pooling
+  poolSize: 10,
 });

@@ -6,7 +6,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OtpVerification } from './entities/otp-verification.entity';
 import { InvalidatedToken } from './entities/invalidated-token.entity';
+import { User } from '../users/user.entity';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 
 interface JwtPayload {
   email: string;
@@ -22,11 +24,13 @@ export class AuthService {
     @InjectRepository(OtpVerification)
     private otpRepository: Repository<OtpVerification>,
     @InjectRepository(InvalidatedToken)
-    private invalidatedTokenRepository: Repository<InvalidatedToken>
+    private invalidatedTokenRepository: Repository<InvalidatedToken>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>
   ) {}
 
   private generateOTP(): string {
-    return Math.floor(1000 + Math.random() * 9000).toString();
+    return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   async sendVerificationOTP(email: string): Promise<void> {
@@ -247,5 +251,78 @@ export class AuthService {
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+
+  // Check username availability
+  async checkUsernameAvailability(username: string): Promise<boolean> {
+    const user = await this.userRepository.findOne({ where: { username } });
+    return !user; // Returns true if available (user not found)
+  }
+
+  // Send password reset email
+  async sendPasswordResetEmail(email: string): Promise<void> {
+    const user = await this.userService.findByEmail(email);
+    if (!user) {
+      // For security, don't reveal if email exists or not
+      return;
+    }
+
+    // Generate secure random token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date();
+    resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1); // 1 hour expiry
+
+    // Save token to user
+    user.resetToken = resetToken;
+    user.resetTokenExpiry = resetTokenExpiry;
+    await this.userRepository.save(user);
+
+    // Send email with reset link (for now, just log it)
+    console.log(`Password reset token for ${email}: ${resetToken}`);
+    // TODO: Implement actual email sending with reset link
+    // await this.emailService.sendPasswordResetEmail(email, resetToken);
+  }
+
+  // Validate reset token
+  async validateResetToken(token: string): Promise<boolean> {
+    const user = await this.userRepository.findOne({ where: { resetToken: token } });
+    
+    if (!user || !user.resetTokenExpiry) {
+      return false;
+    }
+
+    const now = new Date();
+    if (now > user.resetTokenExpiry) {
+      // Token expired, clear it
+      user.resetToken = undefined;
+      user.resetTokenExpiry = undefined;
+      await this.userRepository.save(user);
+      return false;
+    }
+
+    return true;
+  }
+
+  // Reset password
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { resetToken: token } });
+    
+    if (!user || !user.resetTokenExpiry) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const now = new Date();
+    if (now > user.resetTokenExpiry) {
+      throw new BadRequestException('Reset token has expired');
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password and clear reset token
+    user.password = hashedPassword;
+    user.resetToken = undefined;
+    user.resetTokenExpiry = undefined;
+    await this.userRepository.save(user);
   }
 }

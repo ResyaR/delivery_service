@@ -9,6 +9,9 @@ import { UsersModule } from './users/user.module';
 import { DriverModule } from './drivers/driver.module';
 import { AdminModule } from './admin/admin.module';
 import { OngkirModule } from './ongkir/ongkir.module';
+import { RestaurantModule } from './restaurants/restaurant.module';
+import { MenuModule } from './menus/menu.module';
+import { OrderModule } from './orders/order.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -23,12 +26,18 @@ import { OngkirModule } from './ongkir/ongkir.module';
         database: configService.get('DB_DATABASE'),
         autoLoadEntities: true,
         synchronize: false, // set to false when using migrations
+        logging: configService.get('NODE_ENV') === 'development',
         migrations: [__dirname + '/migrations/*.{js,ts}'],
         migrationsRun: true, // automatically run migrations
+        
+        // Optimized connection pool settings
         extra: {
-          max: 5,
-          poolSize: 5,
+          max: 20, // Maximum pool size
+          min: 5,  // Minimum pool size
+          idleTimeoutMillis: 30000, // Close idle connections after 30s
+          connectionTimeoutMillis: 2000, // Timeout for new connections
         },
+        poolSize: 10,
       }),
       inject: [ConfigService],
     }),
@@ -38,6 +47,9 @@ import { OngkirModule } from './ongkir/ongkir.module';
     DriverModule,
     AdminModule,
     OngkirModule,
+    RestaurantModule,
+    MenuModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],

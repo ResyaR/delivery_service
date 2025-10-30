@@ -3,12 +3,22 @@ import { CreateDeliveryDto, CreateTitipBeliDto } from './dto/create-delivery.dto
 import { DeliveryListResponseDto, DeliveryDetailResponseDto, DeliveryCreateResponseDto } from './dto/delivery-response.dto';
 import { DeliveryType } from './dto/delivery-type.enum';
 import { DeliveryStatus } from './delivery.entity';
+import { CreateMultiDropDeliveryDto } from './dto/create-multi-drop.dto';
+import { CreateScheduledDeliveryDto } from './dto/create-scheduled-delivery.dto';
+import { CreatePaketBesarDto } from './dto/create-paket-besar.dto';
 export declare class DeliveryController {
     private readonly deliveryService;
     constructor(deliveryService: DeliveryService);
     createKirimSekarang(req: any, dto: CreateDeliveryDto): Promise<DeliveryCreateResponseDto>;
     createJadwal(req: any, dto: CreateDeliveryDto): Promise<DeliveryCreateResponseDto>;
     createTitipBeli(req: any, dto: CreateTitipBeliDto): Promise<DeliveryCreateResponseDto>;
+    createMultiDrop(req: any, createDto: CreateMultiDropDeliveryDto): Promise<DeliveryCreateResponseDto>;
+    createScheduled(req: any, createDto: CreateScheduledDeliveryDto): Promise<DeliveryCreateResponseDto>;
+    createPaketBesar(req: any, createDto: CreatePaketBesarDto): Promise<DeliveryCreateResponseDto>;
+    getDropLocations(id: number): Promise<{
+        message: string;
+        data: import("./multi-drop-location.entity").MultiDropLocation[];
+    }>;
     getHistory(req: any, type?: DeliveryType): Promise<DeliveryListResponseDto>;
     getPendingDeliveries(): Promise<DeliveryListResponseDto>;
     getStatus(req: any, id: number): Promise<DeliveryDetailResponseDto>;

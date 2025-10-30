@@ -25,11 +25,11 @@ __decorate([
 ], VerifyOtpDto.prototype, "email", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: '4-digit OTP code',
-        example: '1234'
+        description: '6-digit OTP code',
+        example: '123456'
     }),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Length)(4, 4),
+    (0, class_validator_1.Length)(6, 6),
     __metadata("design:type", String)
 ], VerifyOtpDto.prototype, "otp", void 0);
 //# sourceMappingURL=verify-otp.dto.js.map

@@ -20,6 +20,7 @@ const invalidated_token_entity_1 = require("./entities/invalidated-token.entity"
 const otp_verification_entity_1 = require("./entities/otp-verification.entity");
 const email_service_1 = require("./email.service");
 const user_service_1 = require("../users/user.service");
+const user_entity_1 = require("../users/user.entity");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -28,7 +29,7 @@ exports.AuthModule = AuthModule = __decorate([
         imports: [
             user_module_1.UsersModule,
             passport_1.PassportModule,
-            typeorm_1.TypeOrmModule.forFeature([otp_verification_entity_1.OtpVerification, invalidated_token_entity_1.InvalidatedToken]),
+            typeorm_1.TypeOrmModule.forFeature([otp_verification_entity_1.OtpVerification, invalidated_token_entity_1.InvalidatedToken, user_entity_1.User]),
             jwt_1.JwtModule.registerAsync({
                 imports: [config_1.ConfigModule],
                 useFactory: async (configService) => ({

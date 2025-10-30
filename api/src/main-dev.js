@@ -20,6 +20,16 @@ async function bootstrap() {
     await app.listen(4000);
     console.log(`Application is running on: http://localhost:4000`);
     console.log(`Swagger documentation is available at: http://localhost:4000/api/docs`);
+    process.on('SIGTERM', async () => {
+        console.log('SIGTERM received, closing application gracefully...');
+        await app.close();
+        process.exit(0);
+    });
+    process.on('SIGINT', async () => {
+        console.log('SIGINT received, closing application gracefully...');
+        await app.close();
+        process.exit(0);
+    });
 }
 bootstrap();
 //# sourceMappingURL=main-dev.js.map

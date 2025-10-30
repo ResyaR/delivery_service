@@ -1,5 +1,6 @@
 import { User } from '../users/user.entity';
 import { DeliveryType } from './dto/delivery-type.enum';
+import { MultiDropLocation } from './multi-drop-location.entity';
 export declare enum DeliveryStatus {
     PENDING = "pending",
     ACCEPTED = "accepted",
@@ -27,6 +28,22 @@ export declare class Delivery {
     estimatedArrival?: Date;
     actualArrival?: Date;
     notes?: string;
+    multiDropLocations?: MultiDropLocation[];
+    packageDetails?: {
+        weight: number;
+        length: number;
+        width: number;
+        height: number;
+        volumeWeight?: number;
+        category?: string;
+        isFragile?: boolean;
+        requiresHelper?: boolean;
+    };
+    scheduledDate?: Date;
+    scheduledTime?: string;
+    scheduleTimeSlot?: string;
+    totalDropPoints?: number;
+    totalDistance?: number;
     createdAt: Date;
     updatedAt: Date;
 }
