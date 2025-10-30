@@ -21,6 +21,9 @@ const delivery_response_dto_1 = require("./dto/delivery-response.dto");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const delivery_type_enum_1 = require("./dto/delivery-type.enum");
 const delivery_entity_1 = require("./delivery.entity");
+const create_multi_drop_dto_1 = require("./dto/create-multi-drop.dto");
+const create_scheduled_delivery_dto_1 = require("./dto/create-scheduled-delivery.dto");
+const create_paket_besar_dto_1 = require("./dto/create-paket-besar.dto");
 let DeliveryController = class DeliveryController {
     constructor(deliveryService) {
         this.deliveryService = deliveryService;
@@ -44,6 +47,34 @@ let DeliveryController = class DeliveryController {
         return {
             message: 'Titip Beli request created',
             data: delivery
+        };
+    }
+    async createMultiDrop(req, createDto) {
+        const delivery = await this.deliveryService.createMultiDropDelivery(req.user.id, createDto);
+        return {
+            message: 'Multi-Drop delivery request created',
+            data: delivery
+        };
+    }
+    async createScheduled(req, createDto) {
+        const delivery = await this.deliveryService.createScheduledDelivery(req.user.id, createDto);
+        return {
+            message: 'Scheduled delivery request created',
+            data: delivery
+        };
+    }
+    async createPaketBesar(req, createDto) {
+        const delivery = await this.deliveryService.createPaketBesarDelivery(req.user.id, createDto);
+        return {
+            message: 'Paket Besar delivery request created',
+            data: delivery
+        };
+    }
+    async getDropLocations(id) {
+        const locations = await this.deliveryService.getMultiDropLocations(Number(id));
+        return {
+            message: 'Drop locations fetched successfully',
+            data: locations
         };
     }
     async getHistory(req, type) {
@@ -163,6 +194,96 @@ __decorate([
     __metadata("design:paramtypes", [Object, create_delivery_dto_1.CreateTitipBeliDto]),
     __metadata("design:returntype", Promise)
 ], DeliveryController.prototype, "createTitipBeli", null);
+__decorate([
+    (0, common_1.Post)('multi-drop'),
+    (0, swagger_1.ApiOperation)({ summary: 'Buat permintaan Multi-Drop (pengiriman ke multiple lokasi)' }),
+    (0, swagger_1.ApiBody)({ type: create_multi_drop_dto_1.CreateMultiDropDeliveryDto }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'Permintaan multi-drop berhasil dibuat.',
+        type: delivery_response_dto_1.DeliveryCreateResponseDto
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Unauthorized. Token tidak valid atau tidak ada.'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error.'
+    }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, create_multi_drop_dto_1.CreateMultiDropDeliveryDto]),
+    __metadata("design:returntype", Promise)
+], DeliveryController.prototype, "createMultiDrop", null);
+__decorate([
+    (0, common_1.Post)('scheduled'),
+    (0, swagger_1.ApiOperation)({ summary: 'Buat permintaan Jadwal Pengiriman (scheduled delivery)' }),
+    (0, swagger_1.ApiBody)({ type: create_scheduled_delivery_dto_1.CreateScheduledDeliveryDto }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'Permintaan jadwal pengiriman berhasil dibuat.',
+        type: delivery_response_dto_1.DeliveryCreateResponseDto
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Unauthorized. Token tidak valid atau tidak ada.'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error.'
+    }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, create_scheduled_delivery_dto_1.CreateScheduledDeliveryDto]),
+    __metadata("design:returntype", Promise)
+], DeliveryController.prototype, "createScheduled", null);
+__decorate([
+    (0, common_1.Post)('paket-besar'),
+    (0, swagger_1.ApiOperation)({ summary: 'Buat permintaan Paket Besar/Ekspedisi Lokal' }),
+    (0, swagger_1.ApiBody)({ type: create_paket_besar_dto_1.CreatePaketBesarDto }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'Permintaan paket besar berhasil dibuat.',
+        type: delivery_response_dto_1.DeliveryCreateResponseDto
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Unauthorized. Token tidak valid atau tidak ada.'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error.'
+    }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, create_paket_besar_dto_1.CreatePaketBesarDto]),
+    __metadata("design:returntype", Promise)
+], DeliveryController.prototype, "createPaketBesar", null);
+__decorate([
+    (0, common_1.Get)(':id/drop-locations'),
+    (0, swagger_1.ApiOperation)({ summary: 'Ambil daftar lokasi drop untuk multi-drop delivery' }),
+    (0, swagger_1.ApiParam)({ name: 'id', type: Number }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Daftar lokasi drop berhasil diambil.'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Unauthorized. Token tidak valid atau tidak ada.'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: 'Delivery not found.'
+    }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], DeliveryController.prototype, "getDropLocations", null);
 __decorate([
     (0, common_1.Get)('history'),
     (0, swagger_1.ApiOperation)({ summary: 'Ambil riwayat permintaan pengantaran user' }),

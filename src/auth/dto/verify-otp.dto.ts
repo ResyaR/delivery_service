@@ -10,10 +10,10 @@ export class VerifyOtpDto {
   email: string;
 
   @ApiProperty({
-    description: '4-digit OTP code',
-    example: '1234'
+    description: '6-digit OTP code',
+    example: '123456'
   })
   @IsString()
-  @Length(4, 4)
+  @Length(6, 6)
   otp: string;
 }

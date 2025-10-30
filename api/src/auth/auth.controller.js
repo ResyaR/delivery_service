@@ -249,6 +249,41 @@ let AuthController = class AuthController {
             });
         }
     }
+    async checkUsername(username) {
+        if (!username || username.length < 3) {
+            throw new common_1.BadRequestException('Username must be at least 3 characters');
+        }
+        const available = await this.authService.checkUsernameAvailability(username);
+        return { available };
+    }
+    async forgotPassword(body) {
+        if (!body.email) {
+            throw new common_1.BadRequestException('Email is required');
+        }
+        await this.authService.sendPasswordResetEmail(body.email);
+        return {
+            message: 'If the email exists, a password reset link has been sent'
+        };
+    }
+    async validateResetToken(body) {
+        if (!body.token) {
+            throw new common_1.BadRequestException('Token is required');
+        }
+        const valid = await this.authService.validateResetToken(body.token);
+        return { valid };
+    }
+    async resetPassword(body) {
+        if (!body.token || !body.newPassword) {
+            throw new common_1.BadRequestException('Token and new password are required');
+        }
+        if (body.newPassword.length < 8) {
+            throw new common_1.BadRequestException('Password must be at least 8 characters');
+        }
+        await this.authService.resetPassword(body.token, body.newPassword);
+        return {
+            message: 'Password reset successful'
+        };
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -597,6 +632,99 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "logout", null);
+__decorate([
+    (0, common_1.Get)('check-username'),
+    (0, swagger_1.ApiOperation)({ summary: 'Check if username is available' }),
+    (0, swagger_1.ApiQuery)({ name: 'username', type: String, description: 'Username to check' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Username availability checked',
+        schema: {
+            type: 'object',
+            properties: {
+                available: { type: 'boolean' }
+            }
+        }
+    }),
+    __param(0, (0, common_1.Query)('username')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "checkUsername", null);
+__decorate([
+    (0, common_1.Post)('forgot-password'),
+    (0, swagger_1.ApiOperation)({ summary: 'Request password reset email' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            required: ['email'],
+            properties: {
+                email: { type: 'string', format: 'email' }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'If email exists, reset link will be sent'
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "forgotPassword", null);
+__decorate([
+    (0, common_1.Post)('validate-reset-token'),
+    (0, swagger_1.ApiOperation)({ summary: 'Validate password reset token' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            required: ['token'],
+            properties: {
+                token: { type: 'string' }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Token validation result',
+        schema: {
+            type: 'object',
+            properties: {
+                valid: { type: 'boolean' }
+            }
+        }
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "validateResetToken", null);
+__decorate([
+    (0, common_1.Post)('reset-password'),
+    (0, swagger_1.ApiOperation)({ summary: 'Reset password using token' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            required: ['token', 'newPassword'],
+            properties: {
+                token: { type: 'string' },
+                newPassword: { type: 'string', minLength: 8 }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Password reset successful'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'Invalid or expired token'
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resetPassword", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)('auth'),
     (0, common_1.Controller)('auth'),

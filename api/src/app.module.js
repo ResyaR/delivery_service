@@ -18,6 +18,9 @@ const user_module_1 = require("./users/user.module");
 const driver_module_1 = require("./drivers/driver.module");
 const admin_module_1 = require("./admin/admin.module");
 const ongkir_module_1 = require("./ongkir/ongkir.module");
+const restaurant_module_1 = require("./restaurants/restaurant.module");
+const menu_module_1 = require("./menus/menu.module");
+const order_module_1 = require("./orders/order.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -36,12 +39,16 @@ exports.AppModule = AppModule = __decorate([
                     database: configService.get('DB_DATABASE'),
                     autoLoadEntities: true,
                     synchronize: false,
+                    logging: configService.get('NODE_ENV') === 'development',
                     migrations: [__dirname + '/migrations/*.{js,ts}'],
                     migrationsRun: true,
                     extra: {
-                        max: 5,
-                        poolSize: 5,
+                        max: 20,
+                        min: 5,
+                        idleTimeoutMillis: 30000,
+                        connectionTimeoutMillis: 2000,
                     },
+                    poolSize: 10,
                 }),
                 inject: [config_1.ConfigService],
             }),
@@ -51,6 +58,9 @@ exports.AppModule = AppModule = __decorate([
             driver_module_1.DriverModule,
             admin_module_1.AdminModule,
             ongkir_module_1.OngkirModule,
+            restaurant_module_1.RestaurantModule,
+            menu_module_1.MenuModule,
+            order_module_1.OrderModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

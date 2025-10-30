@@ -54,17 +54,20 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const otp_verification_entity_1 = require("./entities/otp-verification.entity");
 const invalidated_token_entity_1 = require("./entities/invalidated-token.entity");
+const user_entity_1 = require("../users/user.entity");
 const bcrypt = __importStar(require("bcryptjs"));
+const crypto = __importStar(require("crypto"));
 let AuthService = class AuthService {
-    constructor(userService, jwtService, emailService, otpRepository, invalidatedTokenRepository) {
+    constructor(userService, jwtService, emailService, otpRepository, invalidatedTokenRepository, userRepository) {
         this.userService = userService;
         this.jwtService = jwtService;
         this.emailService = emailService;
         this.otpRepository = otpRepository;
         this.invalidatedTokenRepository = invalidatedTokenRepository;
+        this.userRepository = userRepository;
     }
     generateOTP() {
-        return Math.floor(1000 + Math.random() * 9000).toString();
+        return Math.floor(100000 + Math.random() * 900000).toString();
     }
     async sendVerificationOTP(email) {
         try {
@@ -237,15 +240,63 @@ let AuthService = class AuthService {
             throw new common_1.UnauthorizedException('Invalid refresh token');
         }
     }
+    async checkUsernameAvailability(username) {
+        const user = await this.userRepository.findOne({ where: { username } });
+        return !user;
+    }
+    async sendPasswordResetEmail(email) {
+        const user = await this.userService.findByEmail(email);
+        if (!user) {
+            return;
+        }
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = new Date();
+        resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
+        user.resetToken = resetToken;
+        user.resetTokenExpiry = resetTokenExpiry;
+        await this.userRepository.save(user);
+        console.log(`Password reset token for ${email}: ${resetToken}`);
+    }
+    async validateResetToken(token) {
+        const user = await this.userRepository.findOne({ where: { resetToken: token } });
+        if (!user || !user.resetTokenExpiry) {
+            return false;
+        }
+        const now = new Date();
+        if (now > user.resetTokenExpiry) {
+            user.resetToken = undefined;
+            user.resetTokenExpiry = undefined;
+            await this.userRepository.save(user);
+            return false;
+        }
+        return true;
+    }
+    async resetPassword(token, newPassword) {
+        const user = await this.userRepository.findOne({ where: { resetToken: token } });
+        if (!user || !user.resetTokenExpiry) {
+            throw new common_1.BadRequestException('Invalid or expired reset token');
+        }
+        const now = new Date();
+        if (now > user.resetTokenExpiry) {
+            throw new common_1.BadRequestException('Reset token has expired');
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        user.resetToken = undefined;
+        user.resetTokenExpiry = undefined;
+        await this.userRepository.save(user);
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __param(3, (0, typeorm_1.InjectRepository)(otp_verification_entity_1.OtpVerification)),
     __param(4, (0, typeorm_1.InjectRepository)(invalidated_token_entity_1.InvalidatedToken)),
+    __param(5, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __metadata("design:paramtypes", [user_service_1.UserService,
         jwt_1.JwtService,
         email_service_1.EmailService,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository])
 ], AuthService);

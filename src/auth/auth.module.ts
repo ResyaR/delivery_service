@@ -11,12 +11,13 @@ import { InvalidatedToken } from './entities/invalidated-token.entity';
 import { OtpVerification } from './entities/otp-verification.entity';
 import { EmailService } from './email.service';
 import { UserService } from '../users/user.service';
+import { User } from '../users/user.entity';
 
 @Module({
   imports: [
     UsersModule,
     PassportModule,
-    TypeOrmModule.forFeature([OtpVerification, InvalidatedToken]),
+    TypeOrmModule.forFeature([OtpVerification, InvalidatedToken, User]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

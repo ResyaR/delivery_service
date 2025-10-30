@@ -4,13 +4,15 @@ import { EmailService } from './email.service';
 import { Repository } from 'typeorm';
 import { OtpVerification } from './entities/otp-verification.entity';
 import { InvalidatedToken } from './entities/invalidated-token.entity';
+import { User } from '../users/user.entity';
 export declare class AuthService {
     private userService;
     private jwtService;
     private emailService;
     private otpRepository;
     private invalidatedTokenRepository;
-    constructor(userService: UserService, jwtService: JwtService, emailService: EmailService, otpRepository: Repository<OtpVerification>, invalidatedTokenRepository: Repository<InvalidatedToken>);
+    private userRepository;
+    constructor(userService: UserService, jwtService: JwtService, emailService: EmailService, otpRepository: Repository<OtpVerification>, invalidatedTokenRepository: Repository<InvalidatedToken>, userRepository: Repository<User>);
     private generateOTP;
     sendVerificationOTP(email: string): Promise<void>;
     verifyOTP(email: string, otp: string): Promise<boolean>;
@@ -45,4 +47,8 @@ export declare class AuthService {
             username: string;
         };
     }>;
+    checkUsernameAvailability(username: string): Promise<boolean>;
+    sendPasswordResetEmail(email: string): Promise<void>;
+    validateResetToken(token: string): Promise<boolean>;
+    resetPassword(token: string, newPassword: string): Promise<void>;
 }

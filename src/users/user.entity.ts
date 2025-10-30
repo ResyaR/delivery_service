@@ -43,6 +43,12 @@ export class User {
   @Column({ default: false })
   isVerified: boolean;
 
+  @Column({ nullable: true })
+  resetToken?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  resetTokenExpiry?: Date;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 

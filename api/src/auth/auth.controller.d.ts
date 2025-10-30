@@ -77,4 +77,23 @@ export declare class AuthController {
     logout(req: any): Promise<{
         message: string;
     }>;
+    checkUsername(username: string): Promise<{
+        available: boolean;
+    }>;
+    forgotPassword(body: {
+        email: string;
+    }): Promise<{
+        message: string;
+    }>;
+    validateResetToken(body: {
+        token: string;
+    }): Promise<{
+        valid: boolean;
+    }>;
+    resetPassword(body: {
+        token: string;
+        newPassword: string;
+    }): Promise<{
+        message: string;
+    }>;
 }

@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../users/user.entity';
 import { DeliveryType } from './dto/delivery-type.enum';
+import { MultiDropLocation } from './multi-drop-location.entity';
 
 export enum DeliveryStatus {
   PENDING = 'pending',
@@ -68,6 +69,40 @@ export class Delivery {
 
   @Column({ nullable: true })
   notes?: string;
+
+  // Multi-drop relation
+  @OneToMany(() => MultiDropLocation, (location) => location.delivery)
+  multiDropLocations?: MultiDropLocation[];
+
+  // Package details for PAKET_BESAR
+  @Column('json', { nullable: true })
+  packageDetails?: {
+    weight: number;        // kg
+    length: number;        // cm
+    width: number;         // cm
+    height: number;        // cm
+    volumeWeight?: number; // kg (calculated)
+    category?: string;     // Electronics, Furniture, etc
+    isFragile?: boolean;
+    requiresHelper?: boolean; // Perlu bantuan angkat
+  };
+
+  // Scheduled delivery details
+  @Column({ type: 'date', nullable: true })
+  scheduledDate?: Date; // Tanggal pengiriman
+
+  @Column({ type: 'time', nullable: true })
+  scheduledTime?: string; // Jam pengiriman (HH:MM)
+
+  @Column({ nullable: true })
+  scheduleTimeSlot?: string; // "09:00-12:00", "13:00-17:00", etc
+
+  // Multi-drop specific
+  @Column({ type: 'int', nullable: true })
+  totalDropPoints?: number; // Jumlah drop points
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  totalDistance?: number; // Total jarak (km)
 
   @CreateDateColumn()
   createdAt: Date;

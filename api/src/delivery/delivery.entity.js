@@ -13,6 +13,7 @@ exports.Delivery = exports.DeliveryStatus = void 0;
 const typeorm_1 = require("typeorm");
 const user_entity_1 = require("../users/user.entity");
 const delivery_type_enum_1 = require("./dto/delivery-type.enum");
+const multi_drop_location_entity_1 = require("./multi-drop-location.entity");
 var DeliveryStatus;
 (function (DeliveryStatus) {
     DeliveryStatus["PENDING"] = "pending";
@@ -93,6 +94,34 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Delivery.prototype, "notes", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => multi_drop_location_entity_1.MultiDropLocation, (location) => location.delivery),
+    __metadata("design:type", Array)
+], Delivery.prototype, "multiDropLocations", void 0);
+__decorate([
+    (0, typeorm_1.Column)('json', { nullable: true }),
+    __metadata("design:type", Object)
+], Delivery.prototype, "packageDetails", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'date', nullable: true }),
+    __metadata("design:type", Date)
+], Delivery.prototype, "scheduledDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'time', nullable: true }),
+    __metadata("design:type", String)
+], Delivery.prototype, "scheduledTime", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Delivery.prototype, "scheduleTimeSlot", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
+    __metadata("design:type", Number)
+], Delivery.prototype, "totalDropPoints", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Number)
+], Delivery.prototype, "totalDistance", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

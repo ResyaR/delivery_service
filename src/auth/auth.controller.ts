@@ -1,6 +1,6 @@
-import { Controller, Post, Body, UnauthorizedException, ConflictException, BadRequestException, UseGuards, Request, Get, Inject, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Post, Body, UnauthorizedException, ConflictException, BadRequestException, UseGuards, Request, Get, Inject, InternalServerErrorException, Query } from '@nestjs/common';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
-import { ApiTags, ApiBody, ApiResponse, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBody, ApiResponse, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { AuthService } from './auth.service';
@@ -559,5 +559,113 @@ export class AuthController {
         error: 'Internal server error during logout'
       });
     }
+  }
+
+  @Get('check-username')
+  @ApiOperation({ summary: 'Check if username is available' })
+  @ApiQuery({ name: 'username', type: String, description: 'Username to check' })
+  @ApiResponse({
+    status: 200,
+    description: 'Username availability checked',
+    schema: {
+      type: 'object',
+      properties: {
+        available: { type: 'boolean' }
+      }
+    }
+  })
+  async checkUsername(@Query('username') username: string) {
+    if (!username || username.length < 3) {
+      throw new BadRequestException('Username must be at least 3 characters');
+    }
+    const available = await this.authService.checkUsernameAvailability(username);
+    return { available };
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Request password reset email' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['email'],
+      properties: {
+        email: { type: 'string', format: 'email' }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'If email exists, reset link will be sent'
+  })
+  async forgotPassword(@Body() body: { email: string }) {
+    if (!body.email) {
+      throw new BadRequestException('Email is required');
+    }
+    await this.authService.sendPasswordResetEmail(body.email);
+    return {
+      message: 'If the email exists, a password reset link has been sent'
+    };
+  }
+
+  @Post('validate-reset-token')
+  @ApiOperation({ summary: 'Validate password reset token' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['token'],
+      properties: {
+        token: { type: 'string' }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token validation result',
+    schema: {
+      type: 'object',
+      properties: {
+        valid: { type: 'boolean' }
+      }
+    }
+  })
+  async validateResetToken(@Body() body: { token: string }) {
+    if (!body.token) {
+      throw new BadRequestException('Token is required');
+    }
+    const valid = await this.authService.validateResetToken(body.token);
+    return { valid };
+  }
+
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Reset password using token' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['token', 'newPassword'],
+      properties: {
+        token: { type: 'string' },
+        newPassword: { type: 'string', minLength: 8 }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successful'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired token'
+  })
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
+    if (!body.token || !body.newPassword) {
+      throw new BadRequestException('Token and new password are required');
+    }
+    if (body.newPassword.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters');
+    }
+    await this.authService.resetPassword(body.token, body.newPassword);
+    return {
+      message: 'Password reset successful'
+    };
   }
 }

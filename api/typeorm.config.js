@@ -12,5 +12,12 @@ exports.default = new typeorm_1.DataSource({
     database: process.env.DB_DATABASE,
     entities: ['src/**/*.entity.ts'],
     migrations: ['src/migrations/*.ts'],
+    extra: {
+        max: 20,
+        min: 5,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
+    },
+    poolSize: 10,
 });
 //# sourceMappingURL=typeorm.config.js.map

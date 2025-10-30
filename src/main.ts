@@ -7,6 +7,16 @@ import express from 'express';
 import { ValidationPipe } from '@nestjs/common';
 
 let app: any;
+let isShuttingDown = false;
+
+// Graceful shutdown handler for serverless
+process.on('SIGTERM', async () => {
+  if (!isShuttingDown && app) {
+    isShuttingDown = true;
+    console.log('SIGTERM received, closing application...');
+    await app.close();
+  }
+});
 
 async function bootstrap() {
   const server = express();
@@ -47,6 +57,17 @@ export default async function handler(req: any, res: any) {
     return server(req, res);
   } catch (error) {
     console.error('Handler error:', error);
+    
+    // Cleanup app jika error
+    if (app && !isShuttingDown) {
+      try {
+        await app.close();
+        app = null;
+      } catch (closeError) {
+        console.error('Error closing app:', closeError);
+      }
+    }
+    
     res.status(500).json({ 
       statusCode: 500,
       message: 'Internal server error',
