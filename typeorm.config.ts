@@ -3,6 +3,8 @@ import { config } from 'dotenv';
 
 config(); // Load .env file
 
+const isVercel = !!process.env.VERCEL;
+
 export default new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST,
@@ -13,14 +15,24 @@ export default new DataSource({
   entities: ['src/**/*.entity.ts'],
   migrations: ['src/migrations/*.ts'],
   
-  // Connection pool configuration
-  extra: {
-    max: 20, // Maximum pool size
-    min: 5,  // Minimum pool size
-    idleTimeoutMillis: 30000, // Close idle connections after 30s
-    connectionTimeoutMillis: 2000, // Timeout for new connections
+  // Connection pool configuration untuk serverless
+  extra: isVercel ? {
+    max: 1, // HANYA 1 connection untuk migrations di serverless
+    min: 0,
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 5000,
+    statement_timeout: 20000,
+    query_timeout: 20000,
+    allowExitOnIdle: true,
+    keepAlive: false,
+  } : {
+    max: 10,
+    min: 2,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+    statement_timeout: 30000,
+    query_timeout: 30000,
+    allowExitOnIdle: false,
+    keepAlive: true,
   },
-  
-  // Enable connection pooling
-  poolSize: 10,
 });
