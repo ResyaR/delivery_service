@@ -28,6 +28,15 @@ export class User {
   @Column({ nullable: true })
   avatar?: string;
 
+  @Column({ nullable: true, unique: true })
+  googleId?: string;
+
+  @Column({ nullable: true, unique: true })
+  facebookId?: string;
+
+  @Column({ default: 'local' })
+  provider: string; // 'local' | 'google' | 'facebook'
+
   @Column({ nullable: true })
   refreshToken?: string;
 
