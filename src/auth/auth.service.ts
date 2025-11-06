@@ -325,4 +325,95 @@ export class AuthService {
     user.resetTokenExpiry = undefined;
     await this.userRepository.save(user);
   }
+
+  async validateOAuthUser(oauthProfile: any): Promise<User> {
+    const { googleId, facebookId, email, fullName, avatar, provider } = oauthProfile;
+
+    // Check if user exists by OAuth ID
+    let user: User | null = null;
+    if (googleId) {
+      user = await this.userRepository.findOne({ where: { googleId } });
+    } else if (facebookId) {
+      user = await this.userRepository.findOne({ where: { facebookId } });
+    }
+
+    if (user) {
+      // Update user info if needed
+      if (avatar && !user.avatar) {
+        user.avatar = avatar;
+      }
+      if (fullName && !user.fullName) {
+        user.fullName = fullName;
+      }
+      user.lastLogin = new Date();
+      user.isVerified = true; // OAuth users are auto-verified
+      await this.userRepository.save(user);
+      return user;
+    }
+
+    // Check if user exists by email (account linking)
+    const existingUser = await this.userRepository.findOne({ where: { email } });
+    if (existingUser) {
+      // Link OAuth account to existing user
+      if (googleId) {
+        existingUser.googleId = googleId;
+      }
+      if (facebookId) {
+        existingUser.facebookId = facebookId;
+      }
+      if (provider) {
+        existingUser.provider = provider;
+      }
+      if (avatar && !existingUser.avatar) {
+        existingUser.avatar = avatar;
+      }
+      if (fullName && !existingUser.fullName) {
+        existingUser.fullName = fullName;
+      }
+      existingUser.lastLogin = new Date();
+      existingUser.isVerified = true;
+      await this.userRepository.save(existingUser);
+      return existingUser;
+    }
+
+    // Create new user from OAuth
+    const username = email.split('@')[0] + '_' + Date.now().toString().slice(-6);
+    const hashedPassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+
+    const newUser = this.userRepository.create({
+      email,
+      username,
+      password: hashedPassword,
+      fullName: fullName || email.split('@')[0],
+      avatar,
+      googleId: googleId || undefined,
+      facebookId: facebookId || undefined,
+      provider: provider || 'local',
+      isVerified: true, // OAuth users are auto-verified
+      lastLogin: new Date(),
+    });
+
+    return await this.userRepository.save(newUser);
+  }
+
+  async linkOAuthAccount(userId: number, oauthProfile: any): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const { googleId, facebookId, provider } = oauthProfile;
+
+    if (googleId && !user.googleId) {
+      user.googleId = googleId;
+    }
+    if (facebookId && !user.facebookId) {
+      user.facebookId = facebookId;
+    }
+    if (provider) {
+      user.provider = provider;
+    }
+
+    return await this.userRepository.save(user);
+  }
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UnauthorizedException, ConflictException, BadRequestException, UseGuards, Request, Get, Inject, InternalServerErrorException, Query } from '@nestjs/common';
+import { Controller, Post, Body, UnauthorizedException, ConflictException, BadRequestException, UseGuards, Request, Get, Inject, InternalServerErrorException, Query, Res, Req } from '@nestjs/common';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ApiTags, ApiBody, ApiResponse, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { LogoutSuccessDto, LogoutErrorDto } from './dto/logout.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -667,5 +668,45 @@ export class AuthController {
     return {
       message: 'Password reset successful'
     };
+  }
+
+  @Get('google')
+  @ApiOperation({ summary: 'Initiate Google OAuth login' })
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // Guard redirects to Google
+  }
+
+  @Get('google/callback')
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  @UseGuards(AuthGuard('google'))
+  async googleAuthCallback(@Req() req: any, @Res() res: any) {
+    const user = await this.authService.validateOAuthUser(req.user);
+    const loginResult = await this.authService.login(user);
+    
+    // Redirect to frontend with tokens
+    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+    const redirectUrl = `${frontendUrl}/auth/callback?access_token=${loginResult.access_token}&refresh_token=${loginResult.refresh_token}`;
+    res.redirect(redirectUrl);
+  }
+
+  @Get('facebook')
+  @ApiOperation({ summary: 'Initiate Facebook OAuth login' })
+  @UseGuards(AuthGuard('facebook'))
+  async facebookAuth() {
+    // Guard redirects to Facebook
+  }
+
+  @Get('facebook/callback')
+  @ApiOperation({ summary: 'Facebook OAuth callback' })
+  @UseGuards(AuthGuard('facebook'))
+  async facebookAuthCallback(@Req() req: any, @Res() res: any) {
+    const user = await this.authService.validateOAuthUser(req.user);
+    const loginResult = await this.authService.login(user);
+    
+    // Redirect to frontend with tokens
+    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+    const redirectUrl = `${frontendUrl}/auth/callback?access_token=${loginResult.access_token}&refresh_token=${loginResult.refresh_token}`;
+    res.redirect(redirectUrl);
   }
 }
