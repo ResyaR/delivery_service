@@ -684,8 +684,17 @@ export class AuthController {
     const user = await this.authService.validateOAuthUser(req.user);
     const loginResult = await this.authService.login(user);
     
-    // Redirect to frontend with tokens
-    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+    // Get frontend URL from environment variable
+    // IMPORTANT: Set FRONTEND_URL in Vercel environment variables with your production frontend URL
+    // Example: FRONTEND_URL=https://your-app-name.vercel.app
+    let frontendUrl = this.configService.get('FRONTEND_URL');
+    
+    if (!frontendUrl) {
+      // Log warning if FRONTEND_URL is not set
+      console.warn('⚠️ FRONTEND_URL environment variable is not set! Using default localhost. Please set FRONTEND_URL in Vercel environment variables.');
+      frontendUrl = 'http://localhost:3000';
+    }
+    
     const redirectUrl = `${frontendUrl}/auth/callback?access_token=${loginResult.access_token}&refresh_token=${loginResult.refresh_token}`;
     res.redirect(redirectUrl);
   }
