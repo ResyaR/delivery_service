@@ -104,12 +104,16 @@ export class CartService {
     await this.cartRepository.save(cart);
 
     // Reload cart with relations
-    cart = await this.cartRepository.findOne({
+    const reloadedCart = await this.cartRepository.findOne({
       where: { id: cart.id },
       relations: ['items', 'items.menu', 'items.menu.restaurant'],
     });
 
-    return this.mapToResponseDto(cart);
+    if (!reloadedCart) {
+      throw new NotFoundException('Cart not found after adding item');
+    }
+
+    return this.mapToResponseDto(reloadedCart);
   }
 
   async updateCartItem(userId: number, itemId: number, updateDto: UpdateCartItemDto): Promise<CartResponseDto> {
@@ -150,6 +154,10 @@ export class CartService {
       relations: ['items', 'items.menu', 'items.menu.restaurant'],
     });
 
+    if (!updatedCart) {
+      throw new NotFoundException('Cart not found after updating item');
+    }
+
     return this.mapToResponseDto(updatedCart);
   }
 
@@ -175,6 +183,10 @@ export class CartService {
       where: { id: cart.id },
       relations: ['items', 'items.menu', 'items.menu.restaurant'],
     });
+
+    if (!updatedCart) {
+      throw new NotFoundException('Cart not found after removing item');
+    }
 
     // Update restaurant ID if cart is empty
     if (updatedCart.items.length === 0) {

@@ -15,7 +15,7 @@ export class Cart {
   user: User;
 
   @Column({ nullable: true })
-  restaurantId: number; // Optional: to track which restaurant the cart belongs to
+  restaurantId: number | null; // Optional: to track which restaurant the cart belongs to
 
   @OneToMany(() => CartItem, cartItem => cartItem.cart, { cascade: true, eager: true })
   items: CartItem[];
