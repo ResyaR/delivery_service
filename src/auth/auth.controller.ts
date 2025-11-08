@@ -690,23 +690,4 @@ export class AuthController {
     res.redirect(redirectUrl);
   }
 
-  @Get('facebook')
-  @ApiOperation({ summary: 'Initiate Facebook OAuth login' })
-  @UseGuards(AuthGuard('facebook'))
-  async facebookAuth() {
-    // Guard redirects to Facebook
-  }
-
-  @Get('facebook/callback')
-  @ApiOperation({ summary: 'Facebook OAuth callback' })
-  @UseGuards(AuthGuard('facebook'))
-  async facebookAuthCallback(@Req() req: any, @Res() res: any) {
-    const user = await this.authService.validateOAuthUser(req.user);
-    const loginResult = await this.authService.login(user);
-    
-    // Redirect to frontend with tokens
-    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
-    const redirectUrl = `${frontendUrl}/auth/callback?access_token=${loginResult.access_token}&refresh_token=${loginResult.refresh_token}`;
-    res.redirect(redirectUrl);
-  }
 }
