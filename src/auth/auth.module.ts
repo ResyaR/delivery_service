@@ -7,7 +7,6 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
-import { FacebookStrategy } from './strategies/facebook.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { InvalidatedToken } from './entities/invalidated-token.entity';
 import { OtpVerification } from './entities/otp-verification.entity';
@@ -42,7 +41,6 @@ import { User } from '../users/user.entity';
       inject: [ConfigService, UserService, AuthService],
     },
     GoogleStrategy,
-    FacebookStrategy,
     EmailService
   ],
   controllers: [AuthController],

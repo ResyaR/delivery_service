@@ -327,14 +327,12 @@ export class AuthService {
   }
 
   async validateOAuthUser(oauthProfile: any): Promise<User> {
-    const { googleId, facebookId, email, fullName, avatar, provider } = oauthProfile;
+    const { googleId, email, fullName, avatar, provider } = oauthProfile;
 
-    // Check if user exists by OAuth ID
+    // Check if user exists by Google ID
     let user: User | null = null;
     if (googleId) {
       user = await this.userRepository.findOne({ where: { googleId } });
-    } else if (facebookId) {
-      user = await this.userRepository.findOne({ where: { facebookId } });
     }
 
     if (user) {
@@ -357,9 +355,6 @@ export class AuthService {
       // Link OAuth account to existing user
       if (googleId) {
         existingUser.googleId = googleId;
-      }
-      if (facebookId) {
-        existingUser.facebookId = facebookId;
       }
       if (provider) {
         existingUser.provider = provider;
@@ -387,8 +382,7 @@ export class AuthService {
       fullName: fullName || email.split('@')[0],
       avatar,
       googleId: googleId || undefined,
-      facebookId: facebookId || undefined,
-      provider: provider || 'local',
+      provider: provider || 'google',
       isVerified: true, // OAuth users are auto-verified
       lastLogin: new Date(),
     });
@@ -402,13 +396,10 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
 
-    const { googleId, facebookId, provider } = oauthProfile;
+    const { googleId, provider } = oauthProfile;
 
     if (googleId && !user.googleId) {
       user.googleId = googleId;
-    }
-    if (facebookId && !user.facebookId) {
-      user.facebookId = facebookId;
     }
     if (provider) {
       user.provider = provider;

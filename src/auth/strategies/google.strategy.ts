@@ -8,7 +8,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private configService: ConfigService) {
     const clientID = configService.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
-    const callbackURL = configService.get<string>('GOOGLE_CALLBACK_URL') || '/auth/google/callback';
+    
+    // Get backend URL from environment or construct from request origin
+    const backendUrl = configService.get<string>('BACKEND_URL') || 'http://localhost:4000';
+    const callbackURL = configService.get<string>('GOOGLE_CALLBACK_URL') || `${backendUrl}/auth/google/callback`;
 
     if (!clientID || !clientSecret) {
       throw new Error('Google OAuth credentials are missing. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
