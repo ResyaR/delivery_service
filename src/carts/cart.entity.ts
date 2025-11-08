@@ -14,7 +14,7 @@ export class Cart {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ nullable: true })
+  @Column({ type: 'int', nullable: true })
   restaurantId: number | null; // Optional: to track which restaurant the cart belongs to
 
   @OneToMany(() => CartItem, cartItem => cartItem.cart, { cascade: true, eager: true })
