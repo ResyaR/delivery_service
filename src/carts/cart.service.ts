@@ -87,6 +87,10 @@ export class CartService {
       // Update quantity
       existingItem.quantity += addItemDto.quantity;
       existingItem.price = menu.price; // Update price in case it changed
+      // Ensure cartId is present to satisfy NOT NULL constraint
+      if (!existingItem.cartId) {
+        existingItem.cartId = cart.id;
+      }
       await this.cartItemRepository.save(existingItem);
     } else {
       // Create new cart item
@@ -132,6 +136,10 @@ export class CartService {
     }
 
     // Verify menu is still available and update price
+    // Ensure cartId present before save
+    if (!cartItem.cartId) {
+      cartItem.cartId = cart.id;
+    }
     const menu = await this.menuRepository.findOne({
       where: { id: cartItem.menuId },
     });
@@ -174,6 +182,11 @@ export class CartService {
     const cartItem = cart.items.find(item => item.id === itemId);
     if (!cartItem) {
       throw new NotFoundException(`Cart item with ID ${itemId} not found`);
+    }
+
+    // Defensive: ensure the item belongs to this cart; prevent accidental cross-cart update
+    if (cartItem.cartId !== cart.id) {
+      throw new NotFoundException('Cart item does not belong to this cart');
     }
 
     await this.cartItemRepository.remove(cartItem);
