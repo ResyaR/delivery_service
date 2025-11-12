@@ -97,21 +97,44 @@ export class CartService {
     const existingItem = cart.items?.find(item => item.menuId === addItemDto.menuId);
 
     if (existingItem) {
-      // Update quantity
-      existingItem.quantity += addItemDto.quantity;
-      existingItem.price = menu.price; // Update price in case it changed
-      // CRITICAL: Always ensure cartId is set before save to satisfy NOT NULL constraint
-      // This can happen if item was loaded via eager relation and cartId wasn't populated
-      // Double-check cart.id is still valid (should be, but extra safety)
+      // CRITICAL: Always reload the cart item directly from database to ensure all fields are populated
+      // Items loaded via relation might not have cartId populated correctly
+      const existingItemId = existingItem.id;
+      if (!existingItemId) {
+        throw new Error('Existing cart item has no ID');
+      }
+      
+      // Reload cart item directly from database to ensure cartId is populated
+      const cartItemToUpdate = await this.cartItemRepository.findOne({
+        where: { id: existingItemId },
+      });
+      
+      if (!cartItemToUpdate) {
+        throw new NotFoundException(`Cart item with ID ${existingItemId} not found`);
+      }
+      
+      // Ensure cart.id is valid
       if (!cart.id) {
-        throw new Error(`Cart ID is undefined when updating cart item. Cart: ${JSON.stringify(cart)}`);
+        cart = await this.cartRepository.findOne({
+          where: { userId },
+        });
+        if (!cart || !cart.id) {
+          throw new Error('Failed to load cart with valid ID when updating existing item');
+        }
       }
-      existingItem.cartId = cart.id;
+      
+      // Update quantity and price
+      cartItemToUpdate.quantity += addItemDto.quantity;
+      cartItemToUpdate.price = menu.price;
+      // CRITICAL: Always ensure cartId is set before save
+      cartItemToUpdate.cartId = cart.id;
+      
       // Verify cartId is set before save
-      if (!existingItem.cartId) {
-        throw new Error(`Failed to set cartId on cart item. Cart ID: ${cart.id}, Item: ${JSON.stringify(existingItem)}`);
+      if (!cartItemToUpdate.cartId) {
+        throw new Error(`Failed to set cartId on cart item. Cart ID: ${cart.id}, Item ID: ${cartItemToUpdate.id}`);
       }
-      await this.cartItemRepository.save(existingItem);
+      
+      await this.cartItemRepository.save(cartItemToUpdate);
     } else {
       // Create new cart item
       // Double-check cart.id is still valid
