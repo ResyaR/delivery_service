@@ -87,10 +87,9 @@ export class CartService {
       // Update quantity
       existingItem.quantity += addItemDto.quantity;
       existingItem.price = menu.price; // Update price in case it changed
-      // Ensure cartId is present to satisfy NOT NULL constraint
-      if (!existingItem.cartId) {
-        existingItem.cartId = cart.id;
-      }
+      // CRITICAL: Always ensure cartId is set before save to satisfy NOT NULL constraint
+      // This can happen if item was loaded via eager relation and cartId wasn't populated
+      existingItem.cartId = cart.id;
       await this.cartItemRepository.save(existingItem);
     } else {
       // Create new cart item
@@ -136,10 +135,9 @@ export class CartService {
     }
 
     // Verify menu is still available and update price
-    // Ensure cartId present before save
-    if (!cartItem.cartId) {
-      cartItem.cartId = cart.id;
-    }
+    // CRITICAL: Always ensure cartId is set before save to satisfy NOT NULL constraint
+    // This can happen if item was loaded via relation and cartId wasn't populated
+    cartItem.cartId = cart.id;
     const menu = await this.menuRepository.findOne({
       where: { id: cartItem.menuId },
     });
