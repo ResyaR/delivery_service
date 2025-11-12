@@ -97,44 +97,35 @@ export class CartService {
     const existingItem = cart.items?.find(item => item.menuId === addItemDto.menuId);
 
     if (existingItem) {
-      // CRITICAL: Always reload the cart item directly from database to ensure all fields are populated
-      // Items loaded via relation might not have cartId populated correctly
+      // CRITICAL: Use query builder to update only quantity and price
+      // This avoids touching cartId which might cause issues if cart.id is undefined
       const existingItemId = existingItem.id;
       if (!existingItemId) {
         throw new Error('Existing cart item has no ID');
       }
       
-      // Reload cart item directly from database to ensure cartId is populated
-      const cartItemToUpdate = await this.cartItemRepository.findOne({
+      // Get current item to verify it exists and get current quantity
+      const currentItem = await this.cartItemRepository.findOne({
         where: { id: existingItemId },
+        select: ['id', 'quantity'], // Only select what we need
       });
       
-      if (!cartItemToUpdate) {
+      if (!currentItem) {
         throw new NotFoundException(`Cart item with ID ${existingItemId} not found`);
       }
       
-      // Ensure cart.id is valid
-      if (!cart.id) {
-        cart = await this.cartRepository.findOne({
-          where: { userId },
-        });
-        if (!cart || !cart.id) {
-          throw new Error('Failed to load cart with valid ID when updating existing item');
-        }
-      }
-      
-      // Update quantity and price
-      cartItemToUpdate.quantity += addItemDto.quantity;
-      cartItemToUpdate.price = menu.price;
-      // CRITICAL: Always ensure cartId is set before save
-      cartItemToUpdate.cartId = cart.id;
-      
-      // Verify cartId is set before save
-      if (!cartItemToUpdate.cartId) {
-        throw new Error(`Failed to set cartId on cart item. Cart ID: ${cart.id}, Item ID: ${cartItemToUpdate.id}`);
-      }
-      
-      await this.cartItemRepository.save(cartItemToUpdate);
+      // Use query builder to update only quantity and price
+      // This is safer because we don't modify cartId at all
+      // cartId remains unchanged from the database value
+      await this.cartItemRepository
+        .createQueryBuilder()
+        .update(CartItem)
+        .set({
+          quantity: currentItem.quantity + addItemDto.quantity,
+          price: menu.price,
+        })
+        .where('id = :id', { id: existingItemId })
+        .execute();
     } else {
       // Create new cart item
       // Double-check cart.id is still valid
