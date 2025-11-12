@@ -52,6 +52,19 @@ export class CartService {
       cart = await this.cartRepository.save(cart);
     }
 
+    // CRITICAL: Ensure cart.id is always set before proceeding
+    // This can happen if cart was loaded but id wasn't populated correctly
+    if (!cart.id) {
+      // Reload cart to ensure id is populated
+      cart = await this.cartRepository.findOne({
+        where: { userId },
+        relations: ['items', 'items.menu', 'items.menu.restaurant'],
+      });
+      if (!cart || !cart.id) {
+        throw new Error('Failed to load or create cart with valid ID');
+      }
+    }
+
     // Verify menu exists
     const menu = await this.menuRepository.findOne({
       where: { id: addItemDto.menuId },
@@ -89,16 +102,32 @@ export class CartService {
       existingItem.price = menu.price; // Update price in case it changed
       // CRITICAL: Always ensure cartId is set before save to satisfy NOT NULL constraint
       // This can happen if item was loaded via eager relation and cartId wasn't populated
+      // Double-check cart.id is still valid (should be, but extra safety)
+      if (!cart.id) {
+        throw new Error(`Cart ID is undefined when updating cart item. Cart: ${JSON.stringify(cart)}`);
+      }
       existingItem.cartId = cart.id;
+      // Verify cartId is set before save
+      if (!existingItem.cartId) {
+        throw new Error(`Failed to set cartId on cart item. Cart ID: ${cart.id}, Item: ${JSON.stringify(existingItem)}`);
+      }
       await this.cartItemRepository.save(existingItem);
     } else {
       // Create new cart item
+      // Double-check cart.id is still valid
+      if (!cart.id) {
+        throw new Error(`Cart ID is undefined when creating new cart item. Cart: ${JSON.stringify(cart)}`);
+      }
       const cartItem = this.cartItemRepository.create({
         cartId: cart.id,
         menuId: addItemDto.menuId,
         quantity: addItemDto.quantity,
         price: menu.price,
       });
+      // Verify cartId is set
+      if (!cartItem.cartId) {
+        throw new Error(`Failed to set cartId on new cart item. Cart ID: ${cart.id}`);
+      }
       await this.cartItemRepository.save(cartItem);
     }
 
