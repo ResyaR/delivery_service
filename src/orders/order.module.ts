@@ -17,5 +17,7 @@ import { ShippingManagerModule } from '../shipping-managers/shipping-manager.mod
   providers: [OrderService],
   exports: [OrderService],
 })
-export class OrderModule {}
+export class OrderModule {
+  // ShippingManagerService is already provided by ShippingManagerModule
+}
 

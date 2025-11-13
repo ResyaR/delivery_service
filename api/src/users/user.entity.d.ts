@@ -7,6 +7,9 @@ export declare class User {
     fullName?: string;
     phone?: string;
     avatar?: string;
+    googleId?: string;
+    facebookId?: string;
+    provider: string;
     refreshToken?: string;
     lastLogin?: Date;
     lastLogout?: Date;

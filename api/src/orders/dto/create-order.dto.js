@@ -13,6 +13,7 @@ exports.CreateOrderDto = exports.OrderItemDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+const order_entity_1 = require("../order.entity");
 class OrderItemDto {
 }
 exports.OrderItemDto = OrderItemDto;
@@ -57,11 +58,61 @@ __decorate([
     __metadata("design:type", Array)
 ], CreateOrderDto.prototype, "items", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 'Jl. Sudirman No. 123, Jakarta' }),
+    (0, swagger_1.ApiProperty)({ example: 'Jl. Sudirman No. 123' }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CreateOrderDto.prototype, "deliveryAddress", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Jakarta Selatan' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateOrderDto.prototype, "deliveryCity", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'DKI Jakarta' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateOrderDto.prototype, "deliveryProvince", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: '12190' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateOrderDto.prototype, "deliveryPostalCode", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1, description: 'Zona pengiriman (1-5)' }),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(5),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", Number)
+], CreateOrderDto.prototype, "deliveryZone", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: order_entity_1.DeliveryType, default: order_entity_1.DeliveryType.REGULAR }),
+    (0, class_validator_1.IsEnum)(order_entity_1.DeliveryType),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateOrderDto.prototype, "deliveryType", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: '2024-12-25' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateOrderDto.prototype, "scheduledDate", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: '14:00' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateOrderDto.prototype, "scheduledTime", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: '13:00-17:00' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateOrderDto.prototype, "scheduleTimeSlot", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({ example: 'Tanpa cabe' }),
     (0, class_validator_1.IsString)(),

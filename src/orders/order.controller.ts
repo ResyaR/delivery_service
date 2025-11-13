@@ -16,13 +16,17 @@ import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ShippingManagerService } from '../shipping-managers/shipping-manager.service';
 
 @ApiTags('orders')
 @Controller('orders')
 export class OrderController {
   private readonly ADMIN_KEY = 'resya123@';
 
-  constructor(private readonly orderService: OrderService) {}
+  constructor(
+    private readonly orderService: OrderService,
+    private readonly shippingManagerService: ShippingManagerService,
+  ) {}
 
   private validateAdminKey(adminKey: string): void {
     if (adminKey !== this.ADMIN_KEY) {
@@ -132,6 +136,58 @@ export class OrderController {
       message: 'Order status updated successfully',
       data: order,
     };
+  }
+
+  @Get('shipping-manager/zone/:zone')
+  @ApiOperation({ summary: 'Get orders by zone (Shipping Manager)' })
+  @ApiHeader({ name: 'shipping-manager-token', required: true })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiResponse({ status: 200, description: 'Orders retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getOrdersByZone(
+    @Headers('shipping-manager-token') token: string,
+    @Param('zone') zone: string,
+    @Query('status') status?: string,
+  ) {
+    try {
+      const manager = await this.shippingManagerService.findByToken(token);
+      // Verify manager zone matches requested zone
+      if (manager.zone !== parseInt(zone)) {
+        throw new UnauthorizedException('You can only access orders from your assigned zone');
+      }
+      const orders = await this.orderService.findByZone(parseInt(zone), status);
+      return {
+        message: 'Orders retrieved successfully',
+        data: orders,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid shipping manager token');
+    }
+  }
+
+  @Get('shipping-manager/my-orders')
+  @ApiOperation({ summary: 'Get orders assigned to shipping manager' })
+  @ApiHeader({ name: 'shipping-manager-token', required: true })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiResponse({ status: 200, description: 'Orders retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getMyShippingManagerOrders(
+    @Headers('shipping-manager-token') token: string,
+    @Query('status') status?: string,
+  ) {
+    try {
+      const manager = await this.shippingManagerService.findByToken(token);
+      const orders = await this.orderService.findByShippingManager(manager.id, status);
+      return {
+        message: 'Orders retrieved successfully',
+        data: orders,
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid shipping manager token');
+    }
   }
 }
 

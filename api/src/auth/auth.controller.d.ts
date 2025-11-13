@@ -96,4 +96,6 @@ export declare class AuthController {
     }): Promise<{
         message: string;
     }>;
+    googleAuth(): Promise<void>;
+    googleAuthCallback(req: any, res: any): Promise<void>;
 }

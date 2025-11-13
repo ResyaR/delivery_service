@@ -58,6 +58,7 @@ const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
 const jwt_auth_guard_1 = require("./jwt-auth.guard");
 const logout_dto_1 = require("./dto/logout.dto");
+const passport_1 = require("@nestjs/passport");
 let AuthController = class AuthController {
     async loginWithToken(req) {
         const user = req.user;
@@ -283,6 +284,19 @@ let AuthController = class AuthController {
         return {
             message: 'Password reset successful'
         };
+    }
+    async googleAuth() {
+    }
+    async googleAuthCallback(req, res) {
+        const user = await this.authService.validateOAuthUser(req.user);
+        const loginResult = await this.authService.login(user);
+        let frontendUrl = this.configService.get('FRONTEND_URL');
+        if (!frontendUrl) {
+            console.warn('⚠️ FRONTEND_URL environment variable is not set! Using default localhost. Please set FRONTEND_URL in Vercel environment variables.');
+            frontendUrl = 'http://localhost:3000';
+        }
+        const redirectUrl = `${frontendUrl}/auth/callback?access_token=${loginResult.access_token}&refresh_token=${loginResult.refresh_token}`;
+        res.redirect(redirectUrl);
     }
 };
 exports.AuthController = AuthController;
@@ -725,6 +739,24 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "resetPassword", null);
+__decorate([
+    (0, common_1.Get)('google'),
+    (0, swagger_1.ApiOperation)({ summary: 'Initiate Google OAuth login' }),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "googleAuth", null);
+__decorate([
+    (0, common_1.Get)('google/callback'),
+    (0, swagger_1.ApiOperation)({ summary: 'Google OAuth callback' }),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "googleAuthCallback", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)('auth'),
     (0, common_1.Controller)('auth'),

@@ -51,4 +51,6 @@ export declare class AuthService {
     sendPasswordResetEmail(email: string): Promise<void>;
     validateResetToken(token: string): Promise<boolean>;
     resetPassword(token: string, newPassword: string): Promise<void>;
+    validateOAuthUser(oauthProfile: any): Promise<User>;
+    linkOAuthAccount(userId: number, oauthProfile: any): Promise<User>;
 }

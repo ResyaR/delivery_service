@@ -3,14 +3,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ShippingManager } from './shipping-manager.entity';
 import { CreateShippingManagerDto } from './dto/create-shipping-manager.dto';
+import { CreateShippingManagerWithUserDto } from './dto/create-shipping-manager-with-user.dto';
 import { UpdateShippingManagerDto } from './dto/update-shipping-manager.dto';
+import { UserService } from '../users/user.service';
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class ShippingManagerService {
   constructor(
     @InjectRepository(ShippingManager)
     private shippingManagerRepository: Repository<ShippingManager>,
+    private userService: UserService,
   ) {}
 
   /**
@@ -45,6 +49,55 @@ export class ShippingManagerService {
 
     const shippingManager = this.shippingManagerRepository.create({
       ...createDto,
+      token,
+    });
+
+    return await this.shippingManagerRepository.save(shippingManager);
+  }
+
+  async createWithUser(createDto: CreateShippingManagerWithUserDto): Promise<ShippingManager> {
+    // Check if email already exists in shipping managers
+    const existingEmail = await this.shippingManagerRepository.findOne({
+      where: { email: createDto.email },
+    });
+    if (existingEmail) {
+      throw new ConflictException('Email already exists in shipping managers');
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(createDto.password, 10);
+
+    // Create user account (using email as username)
+    try {
+      await this.userService.create(
+        createDto.email,
+        createDto.email, // Use email as username
+        hashedPassword
+      );
+    } catch (error) {
+      throw new ConflictException('Email already exists in users');
+    }
+
+    // Generate unique token
+    let token = this.generateToken();
+    let existingToken = await this.shippingManagerRepository.findOne({
+      where: { token },
+    });
+    
+    // Ensure token is unique
+    while (existingToken) {
+      token = this.generateToken();
+      existingToken = await this.shippingManagerRepository.findOne({
+        where: { token },
+      });
+    }
+
+    // Create shipping manager
+    const shippingManager = this.shippingManagerRepository.create({
+      name: createDto.name,
+      email: createDto.email,
+      phone: createDto.phone,
+      zone: createDto.zone,
       token,
     });
 

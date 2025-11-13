@@ -19,17 +19,32 @@ const typeorm_2 = require("typeorm");
 const order_entity_1 = require("./order.entity");
 const order_item_entity_1 = require("./order-item.entity");
 const restaurant_service_1 = require("../restaurants/restaurant.service");
+const shipping_manager_service_1 = require("../shipping-managers/shipping-manager.service");
 let OrderService = class OrderService {
-    constructor(orderRepository, orderItemRepository, restaurantService) {
+    constructor(orderRepository, orderItemRepository, restaurantService, shippingManagerService) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.restaurantService = restaurantService;
+        this.shippingManagerService = shippingManagerService;
     }
     async create(userId, createOrderDto) {
         await this.restaurantService.findOne(createOrderDto.restaurantId);
         const subtotal = createOrderDto.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const deliveryFee = createOrderDto.deliveryFee || 10000;
+        let deliveryFee = createOrderDto.deliveryFee || 10000;
+        if (createOrderDto.deliveryType === order_entity_1.DeliveryType.EXPRESS) {
+            deliveryFee = deliveryFee * 1.5;
+        }
         const total = subtotal + deliveryFee;
+        let shippingManagerId = null;
+        try {
+            const shippingManagers = await this.shippingManagerService.findByZone(createOrderDto.deliveryZone);
+            if (shippingManagers.length > 0) {
+                shippingManagerId = shippingManagers[0].id;
+            }
+        }
+        catch (error) {
+            console.warn(`No shipping manager found for zone ${createOrderDto.deliveryZone}`);
+        }
         const order = this.orderRepository.create({
             userId,
             restaurantId: createOrderDto.restaurantId,
@@ -37,6 +52,15 @@ let OrderService = class OrderService {
             deliveryFee,
             total,
             deliveryAddress: createOrderDto.deliveryAddress,
+            deliveryCity: createOrderDto.deliveryCity,
+            deliveryProvince: createOrderDto.deliveryProvince,
+            deliveryPostalCode: createOrderDto.deliveryPostalCode,
+            deliveryZone: createOrderDto.deliveryZone,
+            deliveryType: createOrderDto.deliveryType || order_entity_1.DeliveryType.REGULAR,
+            scheduledDate: createOrderDto.scheduledDate ? new Date(createOrderDto.scheduledDate) : undefined,
+            scheduledTime: createOrderDto.scheduledTime || undefined,
+            scheduleTimeSlot: createOrderDto.scheduleTimeSlot || undefined,
+            shippingManagerId: shippingManagerId || undefined,
             notes: createOrderDto.notes,
             customerName: createOrderDto.customerName,
             customerPhone: createOrderDto.customerPhone,
@@ -69,10 +93,36 @@ let OrderService = class OrderService {
         query.orderBy('order.createdAt', 'DESC');
         return await query.getMany();
     }
+    async findByZone(zone, status) {
+        const query = this.orderRepository.createQueryBuilder('order')
+            .leftJoinAndSelect('order.items', 'items')
+            .leftJoinAndSelect('order.restaurant', 'restaurant')
+            .leftJoinAndSelect('order.user', 'user')
+            .leftJoinAndSelect('order.shippingManager', 'shippingManager')
+            .where('order.deliveryZone = :zone', { zone });
+        if (status) {
+            query.andWhere('order.status = :status', { status });
+        }
+        query.orderBy('order.createdAt', 'DESC');
+        return await query.getMany();
+    }
+    async findByShippingManager(shippingManagerId, status) {
+        const query = this.orderRepository.createQueryBuilder('order')
+            .leftJoinAndSelect('order.items', 'items')
+            .leftJoinAndSelect('order.restaurant', 'restaurant')
+            .leftJoinAndSelect('order.user', 'user')
+            .leftJoinAndSelect('order.shippingManager', 'shippingManager')
+            .where('order.shippingManagerId = :shippingManagerId', { shippingManagerId });
+        if (status) {
+            query.andWhere('order.status = :status', { status });
+        }
+        query.orderBy('order.createdAt', 'DESC');
+        return await query.getMany();
+    }
     async findOne(id) {
         const order = await this.orderRepository.findOne({
             where: { id },
-            relations: ['items', 'restaurant', 'user'],
+            relations: ['items', 'restaurant', 'user', 'shippingManager'],
         });
         if (!order) {
             throw new common_1.NotFoundException(`Order with ID ${id} not found`);
@@ -114,6 +164,7 @@ exports.OrderService = OrderService = __decorate([
     __param(1, (0, typeorm_1.InjectRepository)(order_item_entity_1.OrderItem)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        restaurant_service_1.RestaurantService])
+        restaurant_service_1.RestaurantService,
+        shipping_manager_service_1.ShippingManagerService])
 ], OrderService);
 //# sourceMappingURL=order.service.js.map

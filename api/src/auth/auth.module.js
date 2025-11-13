@@ -15,6 +15,7 @@ const user_module_1 = require("../users/user.module");
 const auth_service_1 = require("./auth.service");
 const auth_controller_1 = require("./auth.controller");
 const jwt_strategy_1 = require("./jwt.strategy");
+const google_strategy_1 = require("./strategies/google.strategy");
 const config_1 = require("@nestjs/config");
 const invalidated_token_entity_1 = require("./entities/invalidated-token.entity");
 const otp_verification_entity_1 = require("./entities/otp-verification.entity");
@@ -51,6 +52,7 @@ exports.AuthModule = AuthModule = __decorate([
                 },
                 inject: [config_1.ConfigService, user_service_1.UserService, auth_service_1.AuthService],
             },
+            google_strategy_1.GoogleStrategy,
             email_service_1.EmailService
         ],
         controllers: [auth_controller_1.AuthController],

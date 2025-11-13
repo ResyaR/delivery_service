@@ -1,8 +1,9 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ShippingManagerService } from './shipping-manager.service';
 import { CreateShippingManagerDto } from './dto/create-shipping-manager.dto';
+import { CreateShippingManagerWithUserDto } from './dto/create-shipping-manager-with-user.dto';
 import { UpdateShippingManagerDto } from './dto/update-shipping-manager.dto';
-import { AdminTokenGuard } from '../common/middleware/admin-token.middleware';
+import { AdminTokenGuard } from '../common/guards/admin-token.guard';
 
 @Controller('shipping-managers')
 export class ShippingManagerController {
@@ -12,6 +13,12 @@ export class ShippingManagerController {
   @UseGuards(AdminTokenGuard)
   create(@Body() createDto: CreateShippingManagerDto) {
     return this.shippingManagerService.create(createDto);
+  }
+
+  @Post('with-user')
+  @UseGuards(AdminTokenGuard)
+  createWithUser(@Body() createDto: CreateShippingManagerWithUserDto) {
+    return this.shippingManagerService.createWithUser(createDto);
   }
 
   @Get()
@@ -48,6 +55,22 @@ export class ShippingManagerController {
   @UseGuards(AdminTokenGuard)
   remove(@Param('id') id: string) {
     return this.shippingManagerService.remove(parseInt(id));
+  }
+
+  @Post('login')
+  async login(@Body() body: { token: string }) {
+    const manager = await this.shippingManagerService.findByToken(body.token);
+    return {
+      message: 'Login successful',
+      data: {
+        id: manager.id,
+        name: manager.name,
+        email: manager.email,
+        phone: manager.phone,
+        zone: manager.zone,
+        token: manager.token,
+      },
+    };
   }
 }
 
