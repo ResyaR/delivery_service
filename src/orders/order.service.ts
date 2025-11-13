@@ -63,17 +63,17 @@ export class OrderService {
       deliveryPostalCode: createOrderDto.deliveryPostalCode,
       deliveryZone: createOrderDto.deliveryZone,
       deliveryType: createOrderDto.deliveryType || DeliveryType.REGULAR,
-      scheduledDate: createOrderDto.scheduledDate ? new Date(createOrderDto.scheduledDate) : null,
-      scheduledTime: createOrderDto.scheduledTime || null,
-      scheduleTimeSlot: createOrderDto.scheduleTimeSlot || null,
-      shippingManagerId,
+      scheduledDate: createOrderDto.scheduledDate ? new Date(createOrderDto.scheduledDate) : undefined,
+      scheduledTime: createOrderDto.scheduledTime || undefined,
+      scheduleTimeSlot: createOrderDto.scheduleTimeSlot || undefined,
+      shippingManagerId: shippingManagerId || undefined,
       notes: createOrderDto.notes,
       customerName: createOrderDto.customerName,
       customerPhone: createOrderDto.customerPhone,
       status: 'pending',
-    });
-
-    const savedOrder = await this.orderRepository.save(order);
+    } as Partial<Order>);
+    
+    const savedOrder = await this.orderRepository.save(order) as Order;
 
     // Create order items
     const orderItems = createOrderDto.items.map(item => 
@@ -105,6 +105,38 @@ export class OrderService {
     if (userId) {
       query.where('order.userId = :userId', { userId });
     }
+    
+    if (status) {
+      query.andWhere('order.status = :status', { status });
+    }
+    
+    query.orderBy('order.createdAt', 'DESC');
+    return await query.getMany();
+  }
+
+  async findByZone(zone: number, status?: string): Promise<Order[]> {
+    const query = this.orderRepository.createQueryBuilder('order')
+      .leftJoinAndSelect('order.items', 'items')
+      .leftJoinAndSelect('order.restaurant', 'restaurant')
+      .leftJoinAndSelect('order.user', 'user')
+      .leftJoinAndSelect('order.shippingManager', 'shippingManager')
+      .where('order.deliveryZone = :zone', { zone });
+    
+    if (status) {
+      query.andWhere('order.status = :status', { status });
+    }
+    
+    query.orderBy('order.createdAt', 'DESC');
+    return await query.getMany();
+  }
+
+  async findByShippingManager(shippingManagerId: number, status?: string): Promise<Order[]> {
+    const query = this.orderRepository.createQueryBuilder('order')
+      .leftJoinAndSelect('order.items', 'items')
+      .leftJoinAndSelect('order.restaurant', 'restaurant')
+      .leftJoinAndSelect('order.user', 'user')
+      .leftJoinAndSelect('order.shippingManager', 'shippingManager')
+      .where('order.shippingManagerId = :shippingManagerId', { shippingManagerId });
     
     if (status) {
       query.andWhere('order.status = :status', { status });

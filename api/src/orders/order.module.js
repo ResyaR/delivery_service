@@ -14,6 +14,7 @@ const order_controller_1 = require("./order.controller");
 const order_entity_1 = require("./order.entity");
 const order_item_entity_1 = require("./order-item.entity");
 const restaurant_module_1 = require("../restaurants/restaurant.module");
+const shipping_manager_module_1 = require("../shipping-managers/shipping-manager.module");
 let OrderModule = class OrderModule {
 };
 exports.OrderModule = OrderModule;
@@ -22,6 +23,7 @@ exports.OrderModule = OrderModule = __decorate([
         imports: [
             typeorm_1.TypeOrmModule.forFeature([order_entity_1.Order, order_item_entity_1.OrderItem]),
             restaurant_module_1.RestaurantModule,
+            shipping_manager_module_1.ShippingManagerModule,
         ],
         controllers: [order_controller_1.OrderController],
         providers: [order_service_1.OrderService],

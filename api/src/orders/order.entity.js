@@ -9,11 +9,18 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Order = void 0;
+exports.Order = exports.DeliveryType = void 0;
 const typeorm_1 = require("typeorm");
 const user_entity_1 = require("../users/user.entity");
 const restaurant_entity_1 = require("../restaurants/restaurant.entity");
 const order_item_entity_1 = require("./order-item.entity");
+const shipping_manager_entity_1 = require("../shipping-managers/shipping-manager.entity");
+var DeliveryType;
+(function (DeliveryType) {
+    DeliveryType["REGULAR"] = "regular";
+    DeliveryType["EXPRESS"] = "express";
+    DeliveryType["SCHEDULED"] = "scheduled";
+})(DeliveryType || (exports.DeliveryType = DeliveryType = {}));
 let Order = class Order {
 };
 exports.Order = Order;
@@ -59,6 +66,51 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'text' }),
     __metadata("design:type", String)
 ], Order.prototype, "deliveryAddress", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Order.prototype, "deliveryCity", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Order.prototype, "deliveryProvince", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Order.prototype, "deliveryPostalCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
+    __metadata("design:type", Number)
+], Order.prototype, "deliveryZone", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: DeliveryType,
+        default: DeliveryType.REGULAR,
+    }),
+    __metadata("design:type", String)
+], Order.prototype, "deliveryType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'date', nullable: true }),
+    __metadata("design:type", Date)
+], Order.prototype, "scheduledDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'time', nullable: true }),
+    __metadata("design:type", String)
+], Order.prototype, "scheduledTime", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Order.prototype, "scheduleTimeSlot", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], Order.prototype, "shippingManagerId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => shipping_manager_entity_1.ShippingManager, { nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'shippingManagerId' }),
+    __metadata("design:type", shipping_manager_entity_1.ShippingManager)
+], Order.prototype, "shippingManager", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: 'pending' }),
     __metadata("design:type", String)

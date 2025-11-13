@@ -19,9 +19,11 @@ const order_service_1 = require("./order.service");
 const create_order_dto_1 = require("./dto/create-order.dto");
 const update_order_status_dto_1 = require("./dto/update-order-status.dto");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+const shipping_manager_service_1 = require("../shipping-managers/shipping-manager.service");
 let OrderController = class OrderController {
-    constructor(orderService) {
+    constructor(orderService, shippingManagerService) {
         this.orderService = orderService;
+        this.shippingManagerService = shippingManagerService;
         this.ADMIN_KEY = 'resya123@';
     }
     validateAdminKey(adminKey) {
@@ -73,6 +75,38 @@ let OrderController = class OrderController {
             message: 'Order status updated successfully',
             data: order,
         };
+    }
+    async getOrdersByZone(token, zone, status) {
+        try {
+            const manager = await this.shippingManagerService.findByToken(token);
+            if (manager.zone !== parseInt(zone)) {
+                throw new common_1.UnauthorizedException('You can only access orders from your assigned zone');
+            }
+            const orders = await this.orderService.findByZone(parseInt(zone), status);
+            return {
+                message: 'Orders retrieved successfully',
+                data: orders,
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.UnauthorizedException) {
+                throw error;
+            }
+            throw new common_1.UnauthorizedException('Invalid shipping manager token');
+        }
+    }
+    async getMyShippingManagerOrders(token, status) {
+        try {
+            const manager = await this.shippingManagerService.findByToken(token);
+            const orders = await this.orderService.findByShippingManager(manager.id, status);
+            return {
+                message: 'Orders retrieved successfully',
+                data: orders,
+            };
+        }
+        catch (error) {
+            throw new common_1.UnauthorizedException('Invalid shipping manager token');
+        }
     }
 };
 exports.OrderController = OrderController;
@@ -154,9 +188,37 @@ __decorate([
     __metadata("design:paramtypes", [String, String, update_order_status_dto_1.UpdateOrderStatusDto]),
     __metadata("design:returntype", Promise)
 ], OrderController.prototype, "updateStatus", null);
+__decorate([
+    (0, common_1.Get)('shipping-manager/zone/:zone'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get orders by zone (Shipping Manager)' }),
+    (0, swagger_1.ApiHeader)({ name: 'shipping-manager-token', required: true }),
+    (0, swagger_1.ApiQuery)({ name: 'status', required: false }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Orders retrieved successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    __param(0, (0, common_1.Headers)('shipping-manager-token')),
+    __param(1, (0, common_1.Param)('zone')),
+    __param(2, (0, common_1.Query)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], OrderController.prototype, "getOrdersByZone", null);
+__decorate([
+    (0, common_1.Get)('shipping-manager/my-orders'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get orders assigned to shipping manager' }),
+    (0, swagger_1.ApiHeader)({ name: 'shipping-manager-token', required: true }),
+    (0, swagger_1.ApiQuery)({ name: 'status', required: false }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Orders retrieved successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    __param(0, (0, common_1.Headers)('shipping-manager-token')),
+    __param(1, (0, common_1.Query)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], OrderController.prototype, "getMyShippingManagerOrders", null);
 exports.OrderController = OrderController = __decorate([
     (0, swagger_1.ApiTags)('orders'),
     (0, common_1.Controller)('orders'),
-    __metadata("design:paramtypes", [order_service_1.OrderService])
+    __metadata("design:paramtypes", [order_service_1.OrderService,
+        shipping_manager_service_1.ShippingManagerService])
 ], OrderController);
 //# sourceMappingURL=order.controller.js.map

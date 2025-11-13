@@ -286,6 +286,72 @@ let AuthService = class AuthService {
         user.resetTokenExpiry = undefined;
         await this.userRepository.save(user);
     }
+    async validateOAuthUser(oauthProfile) {
+        const { googleId, email, fullName, avatar, provider } = oauthProfile;
+        let user = null;
+        if (googleId) {
+            user = await this.userRepository.findOne({ where: { googleId } });
+        }
+        if (user) {
+            if (avatar && !user.avatar) {
+                user.avatar = avatar;
+            }
+            if (fullName && !user.fullName) {
+                user.fullName = fullName;
+            }
+            user.lastLogin = new Date();
+            user.isVerified = true;
+            await this.userRepository.save(user);
+            return user;
+        }
+        const existingUser = await this.userRepository.findOne({ where: { email } });
+        if (existingUser) {
+            if (googleId) {
+                existingUser.googleId = googleId;
+            }
+            if (provider) {
+                existingUser.provider = provider;
+            }
+            if (avatar && !existingUser.avatar) {
+                existingUser.avatar = avatar;
+            }
+            if (fullName && !existingUser.fullName) {
+                existingUser.fullName = fullName;
+            }
+            existingUser.lastLogin = new Date();
+            existingUser.isVerified = true;
+            await this.userRepository.save(existingUser);
+            return existingUser;
+        }
+        const username = email.split('@')[0] + '_' + Date.now().toString().slice(-6);
+        const hashedPassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+        const newUser = this.userRepository.create({
+            email,
+            username,
+            password: hashedPassword,
+            fullName: fullName || email.split('@')[0],
+            avatar,
+            googleId: googleId || undefined,
+            provider: provider || 'google',
+            isVerified: true,
+            lastLogin: new Date(),
+        });
+        return await this.userRepository.save(newUser);
+    }
+    async linkOAuthAccount(userId, oauthProfile) {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new common_1.BadRequestException('User not found');
+        }
+        const { googleId, provider } = oauthProfile;
+        if (googleId && !user.googleId) {
+            user.googleId = googleId;
+        }
+        if (provider) {
+            user.provider = provider;
+        }
+        return await this.userRepository.save(user);
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([

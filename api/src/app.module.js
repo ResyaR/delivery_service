@@ -21,6 +21,8 @@ const ongkir_module_1 = require("./ongkir/ongkir.module");
 const restaurant_module_1 = require("./restaurants/restaurant.module");
 const menu_module_1 = require("./menus/menu.module");
 const order_module_1 = require("./orders/order.module");
+const cart_module_1 = require("./carts/cart.module");
+const shipping_manager_module_1 = require("./shipping-managers/shipping-manager.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -30,26 +32,48 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({ isGlobal: true }),
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
-                useFactory: (configService) => ({
-                    type: 'postgres',
-                    host: configService.get('DB_HOST'),
-                    port: parseInt(configService.get('DB_PORT') || '5432', 10),
-                    username: configService.get('DB_USERNAME'),
-                    password: configService.get('DB_PASSWORD'),
-                    database: configService.get('DB_DATABASE'),
-                    autoLoadEntities: true,
-                    synchronize: false,
-                    logging: configService.get('NODE_ENV') === 'development',
-                    migrations: [__dirname + '/migrations/*.{js,ts}'],
-                    migrationsRun: true,
-                    extra: {
-                        max: 20,
-                        min: 5,
+                useFactory: (configService) => {
+                    const isVercel = !!process.env.VERCEL;
+                    const isProduction = configService.get('NODE_ENV') === 'production';
+                    const poolConfig = isVercel ? {
+                        max: 1,
+                        min: 0,
+                        idleTimeoutMillis: 10000,
+                        connectionTimeoutMillis: 5000,
+                        statement_timeout: 20000,
+                        query_timeout: 20000,
+                        allowExitOnIdle: true,
+                        keepAlive: false,
+                    } : {
+                        max: 10,
+                        min: 2,
                         idleTimeoutMillis: 30000,
-                        connectionTimeoutMillis: 2000,
-                    },
-                    poolSize: 10,
-                }),
+                        connectionTimeoutMillis: 10000,
+                        statement_timeout: 30000,
+                        query_timeout: 30000,
+                        allowExitOnIdle: false,
+                        keepAlive: true,
+                    };
+                    return {
+                        type: 'postgres',
+                        host: configService.get('DB_HOST'),
+                        port: parseInt(configService.get('DB_PORT') || '5432', 10),
+                        username: configService.get('DB_USERNAME'),
+                        password: configService.get('DB_PASSWORD'),
+                        database: configService.get('DB_DATABASE'),
+                        autoLoadEntities: true,
+                        synchronize: false,
+                        logging: configService.get('NODE_ENV') === 'development',
+                        migrations: [__dirname + '/migrations/*.{js,ts}'],
+                        migrationsRun: !isVercel,
+                        ssl: isProduction ? { rejectUnauthorized: false } : false,
+                        extra: poolConfig,
+                        retryAttempts: isVercel ? 0 : 3,
+                        retryDelay: isVercel ? 0 : 3000,
+                        connectTimeoutMS: isVercel ? 5000 : 10000,
+                        keepConnectionAlive: !isVercel,
+                    };
+                },
                 inject: [config_1.ConfigService],
             }),
             auth_module_1.AuthModule,
@@ -61,6 +85,8 @@ exports.AppModule = AppModule = __decorate([
             restaurant_module_1.RestaurantModule,
             menu_module_1.MenuModule,
             order_module_1.OrderModule,
+            cart_module_1.CartModule,
+            shipping_manager_module_1.ShippingManagerModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
