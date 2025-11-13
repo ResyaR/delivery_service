@@ -24,9 +24,11 @@ const delivery_entity_1 = require("./delivery.entity");
 const create_multi_drop_dto_1 = require("./dto/create-multi-drop.dto");
 const create_scheduled_delivery_dto_1 = require("./dto/create-scheduled-delivery.dto");
 const create_paket_besar_dto_1 = require("./dto/create-paket-besar.dto");
+const shipping_manager_service_1 = require("../shipping-managers/shipping-manager.service");
 let DeliveryController = class DeliveryController {
-    constructor(deliveryService) {
+    constructor(deliveryService, shippingManagerService) {
         this.deliveryService = deliveryService;
+        this.shippingManagerService = shippingManagerService;
     }
     async createKirimSekarang(req, dto) {
         const delivery = await this.deliveryService.create(req.user.id, { ...dto, type: delivery_type_enum_1.DeliveryType.KIRIM_SEKARANG }, delivery_type_enum_1.DeliveryType.KIRIM_SEKARANG);
@@ -119,10 +121,43 @@ let DeliveryController = class DeliveryController {
             data: delivery
         };
     }
+    async getDeliveriesByZone(token, zone, status) {
+        try {
+            const manager = await this.shippingManagerService.findByToken(token);
+            if (manager.zone !== parseInt(zone)) {
+                throw new common_1.UnauthorizedException('You can only access deliveries from your assigned zone');
+            }
+            const deliveries = await this.deliveryService.findByZone(parseInt(zone), status);
+            return {
+                message: 'Deliveries retrieved successfully',
+                data: deliveries,
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.UnauthorizedException) {
+                throw error;
+            }
+            throw new common_1.UnauthorizedException('Invalid shipping manager token');
+        }
+    }
+    async getMyDeliveries(token, status) {
+        try {
+            const manager = await this.shippingManagerService.findByToken(token);
+            const deliveries = await this.deliveryService.findByShippingManager(manager.id, status);
+            return {
+                message: 'Deliveries retrieved successfully',
+                data: deliveries,
+            };
+        }
+        catch (error) {
+            throw new common_1.UnauthorizedException('Invalid shipping manager token');
+        }
+    }
 };
 exports.DeliveryController = DeliveryController;
 __decorate([
     (0, common_1.Post)('kirim-sekarang'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Buat permintaan Kirim Sekarang (langsung antar barang)' }),
     (0, swagger_1.ApiBody)({ type: create_delivery_dto_1.CreateDeliveryDto }),
     (0, swagger_1.ApiResponse)({
@@ -146,6 +181,7 @@ __decorate([
 ], DeliveryController.prototype, "createKirimSekarang", null);
 __decorate([
     (0, common_1.Post)('jadwal'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Buat permintaan Jadwal Pengantaran (antar barang terjadwal)' }),
     (0, swagger_1.ApiBody)({ type: create_delivery_dto_1.CreateDeliveryDto }),
     (0, swagger_1.ApiResponse)({
@@ -169,6 +205,7 @@ __decorate([
 ], DeliveryController.prototype, "createJadwal", null);
 __decorate([
     (0, common_1.Post)('titip-beli'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Buat permintaan Titip Beli (proxy shopping)' }),
     (0, swagger_1.ApiBody)({ type: create_delivery_dto_1.CreateTitipBeliDto }),
     (0, swagger_1.ApiResponse)({
@@ -196,6 +233,7 @@ __decorate([
 ], DeliveryController.prototype, "createTitipBeli", null);
 __decorate([
     (0, common_1.Post)('multi-drop'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Buat permintaan Multi-Drop (pengiriman ke multiple lokasi)' }),
     (0, swagger_1.ApiBody)({ type: create_multi_drop_dto_1.CreateMultiDropDeliveryDto }),
     (0, swagger_1.ApiResponse)({
@@ -219,6 +257,7 @@ __decorate([
 ], DeliveryController.prototype, "createMultiDrop", null);
 __decorate([
     (0, common_1.Post)('scheduled'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Buat permintaan Jadwal Pengiriman (scheduled delivery)' }),
     (0, swagger_1.ApiBody)({ type: create_scheduled_delivery_dto_1.CreateScheduledDeliveryDto }),
     (0, swagger_1.ApiResponse)({
@@ -242,6 +281,7 @@ __decorate([
 ], DeliveryController.prototype, "createScheduled", null);
 __decorate([
     (0, common_1.Post)('paket-besar'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Buat permintaan Paket Besar/Ekspedisi Lokal' }),
     (0, swagger_1.ApiBody)({ type: create_paket_besar_dto_1.CreatePaketBesarDto }),
     (0, swagger_1.ApiResponse)({
@@ -265,6 +305,7 @@ __decorate([
 ], DeliveryController.prototype, "createPaketBesar", null);
 __decorate([
     (0, common_1.Get)(':id/drop-locations'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Ambil daftar lokasi drop untuk multi-drop delivery' }),
     (0, swagger_1.ApiParam)({ name: 'id', type: Number }),
     (0, swagger_1.ApiResponse)({
@@ -286,6 +327,7 @@ __decorate([
 ], DeliveryController.prototype, "getDropLocations", null);
 __decorate([
     (0, common_1.Get)('history'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Ambil riwayat permintaan pengantaran user' }),
     (0, swagger_1.ApiQuery)({ name: 'type', required: false, enum: delivery_type_enum_1.DeliveryType }),
     (0, swagger_1.ApiResponse)({
@@ -309,6 +351,7 @@ __decorate([
 ], DeliveryController.prototype, "getHistory", null);
 __decorate([
     (0, common_1.Get)('pending'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Ambil daftar pengantaran pending (untuk driver)' }),
     (0, swagger_1.ApiResponse)({
         status: 200,
@@ -329,6 +372,7 @@ __decorate([
 ], DeliveryController.prototype, "getPendingDeliveries", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Ambil detail status pengantaran' }),
     (0, swagger_1.ApiParam)({ name: 'id', type: Number }),
     (0, swagger_1.ApiResponse)({
@@ -356,6 +400,7 @@ __decorate([
 ], DeliveryController.prototype, "getStatus", null);
 __decorate([
     (0, common_1.Put)(':id/assign-driver'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Assign driver ke pengantaran (untuk admin/driver)' }),
     (0, swagger_1.ApiParam)({ name: 'id', type: Number }),
     (0, swagger_1.ApiBody)({ schema: {
@@ -390,6 +435,7 @@ __decorate([
 ], DeliveryController.prototype, "assignDriver", null);
 __decorate([
     (0, common_1.Put)(':id/update-status'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Update status pengantaran (untuk driver)' }),
     (0, swagger_1.ApiParam)({ name: 'id', type: Number }),
     (0, swagger_1.ApiBody)({ schema: {
@@ -428,6 +474,7 @@ __decorate([
 ], DeliveryController.prototype, "updateStatus", null);
 __decorate([
     (0, common_1.Post)(':id/cancel'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Batalkan permintaan pengantaran' }),
     (0, swagger_1.ApiParam)({ name: 'id', type: Number }),
     (0, swagger_1.ApiResponse)({
@@ -453,11 +500,38 @@ __decorate([
     __metadata("design:paramtypes", [Object, Number]),
     __metadata("design:returntype", Promise)
 ], DeliveryController.prototype, "cancelDelivery", null);
+__decorate([
+    (0, common_1.Get)('shipping-manager/zone/:zone'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get deliveries by zone (Shipping Manager)' }),
+    (0, swagger_1.ApiHeader)({ name: 'shipping-manager-token', required: true }),
+    (0, swagger_1.ApiQuery)({ name: 'status', required: false, enum: delivery_entity_1.DeliveryStatus }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Deliveries retrieved successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    __param(0, (0, common_1.Headers)('shipping-manager-token')),
+    __param(1, (0, common_1.Param)('zone')),
+    __param(2, (0, common_1.Query)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], DeliveryController.prototype, "getDeliveriesByZone", null);
+__decorate([
+    (0, common_1.Get)('shipping-manager/my-deliveries'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get deliveries assigned to shipping manager' }),
+    (0, swagger_1.ApiHeader)({ name: 'shipping-manager-token', required: true }),
+    (0, swagger_1.ApiQuery)({ name: 'status', required: false, enum: delivery_entity_1.DeliveryStatus }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Deliveries retrieved successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    __param(0, (0, common_1.Headers)('shipping-manager-token')),
+    __param(1, (0, common_1.Query)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], DeliveryController.prototype, "getMyDeliveries", null);
 exports.DeliveryController = DeliveryController = __decorate([
     (0, swagger_1.ApiTags)('delivery'),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('delivery'),
-    __metadata("design:paramtypes", [delivery_service_1.DeliveryService])
+    __metadata("design:paramtypes", [delivery_service_1.DeliveryService,
+        shipping_manager_service_1.ShippingManagerService])
 ], DeliveryController);
 //# sourceMappingURL=delivery.controller.js.map

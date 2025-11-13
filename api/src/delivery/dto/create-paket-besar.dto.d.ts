@@ -5,6 +5,7 @@ export declare class CreatePaketBesarDto {
     length: number;
     width: number;
     height: number;
+    zone?: number;
     category?: string;
     isFragile?: boolean;
     requiresHelper?: boolean;

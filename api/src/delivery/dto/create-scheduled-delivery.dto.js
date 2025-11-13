@@ -31,6 +31,13 @@ __decorate([
     __metadata("design:type", String)
 ], CreateScheduledDeliveryDto.prototype, "scheduleTimeSlot", void 0);
 __decorate([
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(5),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateScheduledDeliveryDto.prototype, "zone", void 0);
+__decorate([
     (0, class_validator_1.IsObject)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Object)

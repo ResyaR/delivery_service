@@ -39,6 +39,13 @@ __decorate([
     __metadata("design:type", Number)
 ], CreatePaketBesarDto.prototype, "height", void 0);
 __decorate([
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(5),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreatePaketBesarDto.prototype, "zone", void 0);
+__decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)

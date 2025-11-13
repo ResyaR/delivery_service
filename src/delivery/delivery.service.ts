@@ -8,6 +8,7 @@ import { MultiDropLocation } from './multi-drop-location.entity';
 import { CreateMultiDropDeliveryDto, DropLocationDto } from './dto/create-multi-drop.dto';
 import { CreateScheduledDeliveryDto } from './dto/create-scheduled-delivery.dto';
 import { CreatePaketBesarDto } from './dto/create-paket-besar.dto';
+import { ShippingManagerService } from '../shipping-managers/shipping-manager.service';
 
 @Injectable()
 export class DeliveryService {
@@ -16,6 +17,7 @@ export class DeliveryService {
     private deliveryRepository: Repository<Delivery>,
     @InjectRepository(MultiDropLocation)
     private multiDropLocationRepository: Repository<MultiDropLocation>,
+    private shippingManagerService: ShippingManagerService,
   ) {}
 
   async create(userId: number, dto: CreateDeliveryDto, type: DeliveryType): Promise<Delivery> {
@@ -305,6 +307,22 @@ export class DeliveryService {
     const pricePerKm = 2000;
     const price = basePrice + (distance * pricePerKm);
 
+    // Determine zone and assign shipping manager
+    let shippingManagerId: number | undefined;
+    const zone = createDto.zone;
+    
+    if (zone) {
+      try {
+        const shippingManagers = await this.shippingManagerService.findByZone(zone);
+        if (shippingManagers && shippingManagers.length > 0) {
+          // Assign to first available shipping manager in the zone
+          shippingManagerId = shippingManagers[0].id;
+        }
+      } catch (error) {
+        console.warn(`No shipping manager found for zone ${zone}`);
+      }
+    }
+
     const delivery = this.deliveryRepository.create({
       userId,
       type: DeliveryType.JADWAL,
@@ -315,6 +333,8 @@ export class DeliveryService {
       barang: createDto.barang,
       price,
       notes: createDto.notes,
+      deliveryZone: zone,
+      shippingManagerId,
     });
 
     return this.deliveryRepository.save(delivery);
@@ -331,6 +351,22 @@ export class DeliveryService {
     );
 
     const price = this.calculatePaketBesarPrice(createDto, distance);
+
+    // Determine zone and assign shipping manager
+    let shippingManagerId: number | undefined;
+    const zone = createDto.zone;
+    
+    if (zone) {
+      try {
+        const shippingManagers = await this.shippingManagerService.findByZone(zone);
+        if (shippingManagers && shippingManagers.length > 0) {
+          // Assign to first available shipping manager in the zone
+          shippingManagerId = shippingManagers[0].id;
+        }
+      } catch (error) {
+        console.warn(`No shipping manager found for zone ${zone}`);
+      }
+    }
 
     const delivery = this.deliveryRepository.create({
       userId,
@@ -351,6 +387,8 @@ export class DeliveryService {
       scheduledDate: createDto.scheduledDate ? new Date(createDto.scheduledDate) : undefined,
       scheduleTimeSlot: createDto.scheduleTimeSlot || undefined,
       notes: createDto.notes,
+      deliveryZone: zone,
+      shippingManagerId,
     });
 
     return this.deliveryRepository.save(delivery);
@@ -381,5 +419,33 @@ export class DeliveryService {
 
   async cancelDelivery(id: number, userId: number): Promise<Delivery> {
     return await this.updateStatus(id, DeliveryStatus.CANCELLED);
+  }
+
+  // Find deliveries by zone (for shipping managers)
+  async findByZone(zone: number, status?: DeliveryStatus): Promise<Delivery[]> {
+    const query = this.deliveryRepository.createQueryBuilder('delivery')
+      .leftJoinAndSelect('delivery.user', 'user')
+      .where('delivery.deliveryZone = :zone', { zone })
+      .orderBy('delivery.createdAt', 'DESC');
+
+    if (status) {
+      query.andWhere('delivery.status = :status', { status });
+    }
+
+    return await query.getMany();
+  }
+
+  // Find deliveries assigned to a shipping manager
+  async findByShippingManager(shippingManagerId: number, status?: DeliveryStatus): Promise<Delivery[]> {
+    const query = this.deliveryRepository.createQueryBuilder('delivery')
+      .leftJoinAndSelect('delivery.user', 'user')
+      .where('delivery.shippingManagerId = :shippingManagerId', { shippingManagerId })
+      .orderBy('delivery.createdAt', 'DESC');
+
+    if (status) {
+      query.andWhere('delivery.status = :status', { status });
+    }
+
+    return await query.getMany();
   }
 }

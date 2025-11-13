@@ -19,10 +19,12 @@ const typeorm_2 = require("typeorm");
 const delivery_type_enum_1 = require("./dto/delivery-type.enum");
 const delivery_entity_1 = require("./delivery.entity");
 const multi_drop_location_entity_1 = require("./multi-drop-location.entity");
+const shipping_manager_service_1 = require("../shipping-managers/shipping-manager.service");
 let DeliveryService = class DeliveryService {
-    constructor(deliveryRepository, multiDropLocationRepository) {
+    constructor(deliveryRepository, multiDropLocationRepository, shippingManagerService) {
         this.deliveryRepository = deliveryRepository;
         this.multiDropLocationRepository = multiDropLocationRepository;
+        this.shippingManagerService = shippingManagerService;
     }
     async create(userId, dto, type) {
         const delivery = this.deliveryRepository.create({
@@ -220,6 +222,19 @@ let DeliveryService = class DeliveryService {
         const basePrice = 10000;
         const pricePerKm = 2000;
         const price = basePrice + (distance * pricePerKm);
+        let shippingManagerId;
+        const zone = createDto.zone;
+        if (zone) {
+            try {
+                const shippingManagers = await this.shippingManagerService.findByZone(zone);
+                if (shippingManagers && shippingManagers.length > 0) {
+                    shippingManagerId = shippingManagers[0].id;
+                }
+            }
+            catch (error) {
+                console.warn(`No shipping manager found for zone ${zone}`);
+            }
+        }
         const delivery = this.deliveryRepository.create({
             userId,
             type: delivery_type_enum_1.DeliveryType.JADWAL,
@@ -230,12 +245,27 @@ let DeliveryService = class DeliveryService {
             barang: createDto.barang,
             price,
             notes: createDto.notes,
+            deliveryZone: zone,
+            shippingManagerId,
         });
         return this.deliveryRepository.save(delivery);
     }
     async createPaketBesarDelivery(userId, createDto) {
         const distance = this.calculateDistance(createDto.pickupLocation, createDto.dropoffLocation);
         const price = this.calculatePaketBesarPrice(createDto, distance);
+        let shippingManagerId;
+        const zone = createDto.zone;
+        if (zone) {
+            try {
+                const shippingManagers = await this.shippingManagerService.findByZone(zone);
+                if (shippingManagers && shippingManagers.length > 0) {
+                    shippingManagerId = shippingManagers[0].id;
+                }
+            }
+            catch (error) {
+                console.warn(`No shipping manager found for zone ${zone}`);
+            }
+        }
         const delivery = this.deliveryRepository.create({
             userId,
             type: delivery_type_enum_1.DeliveryType.PAKET_BESAR,
@@ -255,6 +285,8 @@ let DeliveryService = class DeliveryService {
             scheduledDate: createDto.scheduledDate ? new Date(createDto.scheduledDate) : undefined,
             scheduleTimeSlot: createDto.scheduleTimeSlot || undefined,
             notes: createDto.notes,
+            deliveryZone: zone,
+            shippingManagerId,
         });
         return this.deliveryRepository.save(delivery);
     }
@@ -280,6 +312,26 @@ let DeliveryService = class DeliveryService {
     async cancelDelivery(id, userId) {
         return await this.updateStatus(id, delivery_entity_1.DeliveryStatus.CANCELLED);
     }
+    async findByZone(zone, status) {
+        const query = this.deliveryRepository.createQueryBuilder('delivery')
+            .leftJoinAndSelect('delivery.user', 'user')
+            .where('delivery.deliveryZone = :zone', { zone })
+            .orderBy('delivery.createdAt', 'DESC');
+        if (status) {
+            query.andWhere('delivery.status = :status', { status });
+        }
+        return await query.getMany();
+    }
+    async findByShippingManager(shippingManagerId, status) {
+        const query = this.deliveryRepository.createQueryBuilder('delivery')
+            .leftJoinAndSelect('delivery.user', 'user')
+            .where('delivery.shippingManagerId = :shippingManagerId', { shippingManagerId })
+            .orderBy('delivery.createdAt', 'DESC');
+        if (status) {
+            query.andWhere('delivery.status = :status', { status });
+        }
+        return await query.getMany();
+    }
 };
 exports.DeliveryService = DeliveryService;
 exports.DeliveryService = DeliveryService = __decorate([
@@ -287,6 +339,7 @@ exports.DeliveryService = DeliveryService = __decorate([
     __param(0, (0, typeorm_1.InjectRepository)(delivery_entity_1.Delivery)),
     __param(1, (0, typeorm_1.InjectRepository)(multi_drop_location_entity_1.MultiDropLocation)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        shipping_manager_service_1.ShippingManagerService])
 ], DeliveryService);
 //# sourceMappingURL=delivery.service.js.map

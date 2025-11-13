@@ -6,10 +6,12 @@ import { MultiDropLocation } from './multi-drop-location.entity';
 import { CreateMultiDropDeliveryDto, DropLocationDto } from './dto/create-multi-drop.dto';
 import { CreateScheduledDeliveryDto } from './dto/create-scheduled-delivery.dto';
 import { CreatePaketBesarDto } from './dto/create-paket-besar.dto';
+import { ShippingManagerService } from '../shipping-managers/shipping-manager.service';
 export declare class DeliveryService {
     private deliveryRepository;
     private multiDropLocationRepository;
-    constructor(deliveryRepository: Repository<Delivery>, multiDropLocationRepository: Repository<MultiDropLocation>);
+    private shippingManagerService;
+    constructor(deliveryRepository: Repository<Delivery>, multiDropLocationRepository: Repository<MultiDropLocation>, shippingManagerService: ShippingManagerService);
     create(userId: number, dto: CreateDeliveryDto, type: DeliveryType): Promise<Delivery>;
     findAll(userId: number, type?: DeliveryType): Promise<Delivery[]>;
     findPendingDeliveries(): Promise<Delivery[]>;
@@ -39,4 +41,6 @@ export declare class DeliveryService {
     getMultiDropLocations(deliveryId: number): Promise<MultiDropLocation[]>;
     private validateStatusTransition;
     cancelDelivery(id: number, userId: number): Promise<Delivery>;
+    findByZone(zone: number, status?: DeliveryStatus): Promise<Delivery[]>;
+    findByShippingManager(shippingManagerId: number, status?: DeliveryStatus): Promise<Delivery[]>;
 }
