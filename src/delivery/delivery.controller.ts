@@ -7,9 +7,11 @@ import {
   Request,
   Param,
   Query,
-  Put
+  Put,
+  Headers,
+  UnauthorizedException
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery, ApiHeader } from '@nestjs/swagger';
 import { DeliveryService } from './delivery.service';
 import { CreateDeliveryDto, CreateTitipBeliDto } from './dto/create-delivery.dto';
 import { DeliveryListResponseDto, DeliveryDetailResponseDto, DeliveryCreateResponseDto } from './dto/delivery-response.dto';
@@ -19,15 +21,19 @@ import { DeliveryStatus } from './delivery.entity';
 import { CreateMultiDropDeliveryDto } from './dto/create-multi-drop.dto';
 import { CreateScheduledDeliveryDto } from './dto/create-scheduled-delivery.dto';
 import { CreatePaketBesarDto } from './dto/create-paket-besar.dto';
+import { ShippingManagerService } from '../shipping-managers/shipping-manager.service';
 
 @ApiTags('delivery')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('delivery')
 export class DeliveryController {
-  constructor(private readonly deliveryService: DeliveryService) {}
+  constructor(
+    private readonly deliveryService: DeliveryService,
+    private readonly shippingManagerService: ShippingManagerService,
+  ) {}
 
   @Post('kirim-sekarang')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Buat permintaan Kirim Sekarang (langsung antar barang)' })
   @ApiBody({ type: CreateDeliveryDto })
   @ApiResponse({ 
@@ -52,6 +58,7 @@ export class DeliveryController {
   }
 
   @Post('jadwal')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Buat permintaan Jadwal Pengantaran (antar barang terjadwal)' })
   @ApiBody({ type: CreateDeliveryDto })
   @ApiResponse({ 
@@ -76,6 +83,7 @@ export class DeliveryController {
   }
 
   @Post('titip-beli')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Buat permintaan Titip Beli (proxy shopping)' })
   @ApiBody({ type: CreateTitipBeliDto })
   @ApiResponse({ 
@@ -104,6 +112,7 @@ export class DeliveryController {
   }
 
   @Post('multi-drop')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Buat permintaan Multi-Drop (pengiriman ke multiple lokasi)' })
   @ApiBody({ type: CreateMultiDropDeliveryDto })
   @ApiResponse({ 
@@ -128,6 +137,7 @@ export class DeliveryController {
   }
 
   @Post('scheduled')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Buat permintaan Jadwal Pengiriman (scheduled delivery)' })
   @ApiBody({ type: CreateScheduledDeliveryDto })
   @ApiResponse({ 
@@ -152,6 +162,7 @@ export class DeliveryController {
   }
 
   @Post('paket-besar')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Buat permintaan Paket Besar/Ekspedisi Lokal' })
   @ApiBody({ type: CreatePaketBesarDto })
   @ApiResponse({ 
@@ -176,6 +187,7 @@ export class DeliveryController {
   }
 
   @Get(':id/drop-locations')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Ambil daftar lokasi drop untuk multi-drop delivery' })
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ 
@@ -199,6 +211,7 @@ export class DeliveryController {
   }
 
   @Get('history')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Ambil riwayat permintaan pengantaran user' })
   @ApiQuery({ name: 'type', required: false, enum: DeliveryType })
   @ApiResponse({ 
@@ -223,6 +236,7 @@ export class DeliveryController {
   }
 
   @Get('pending')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Ambil daftar pengantaran pending (untuk driver)' })
   @ApiResponse({ 
     status: 200, 
@@ -246,6 +260,7 @@ export class DeliveryController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Ambil detail status pengantaran' })
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ 
@@ -274,6 +289,7 @@ export class DeliveryController {
   }
 
   @Put(':id/assign-driver')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Assign driver ke pengantaran (untuk admin/driver)' })
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ schema: {
@@ -309,6 +325,7 @@ export class DeliveryController {
   }
 
   @Put(':id/update-status')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update status pengantaran (untuk driver)' })
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ schema: {
@@ -348,6 +365,7 @@ export class DeliveryController {
   }
 
   @Post(':id/cancel')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Batalkan permintaan pengantaran' })
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ 
@@ -373,5 +391,57 @@ export class DeliveryController {
       message: 'Delivery cancelled successfully',
       data: delivery
     };
+  }
+
+  @Get('shipping-manager/zone/:zone')
+  @ApiOperation({ summary: 'Get deliveries by zone (Shipping Manager)' })
+  @ApiHeader({ name: 'shipping-manager-token', required: true })
+  @ApiQuery({ name: 'status', required: false, enum: DeliveryStatus })
+  @ApiResponse({ status: 200, description: 'Deliveries retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getDeliveriesByZone(
+    @Headers('shipping-manager-token') token: string,
+    @Param('zone') zone: string,
+    @Query('status') status?: DeliveryStatus,
+  ) {
+    try {
+      const manager = await this.shippingManagerService.findByToken(token);
+      // Verify manager zone matches requested zone
+      if (manager.zone !== parseInt(zone)) {
+        throw new UnauthorizedException('You can only access deliveries from your assigned zone');
+      }
+      const deliveries = await this.deliveryService.findByZone(parseInt(zone), status);
+      return {
+        message: 'Deliveries retrieved successfully',
+        data: deliveries,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid shipping manager token');
+    }
+  }
+
+  @Get('shipping-manager/my-deliveries')
+  @ApiOperation({ summary: 'Get deliveries assigned to shipping manager' })
+  @ApiHeader({ name: 'shipping-manager-token', required: true })
+  @ApiQuery({ name: 'status', required: false, enum: DeliveryStatus })
+  @ApiResponse({ status: 200, description: 'Deliveries retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getMyDeliveries(
+    @Headers('shipping-manager-token') token: string,
+    @Query('status') status?: DeliveryStatus,
+  ) {
+    try {
+      const manager = await this.shippingManagerService.findByToken(token);
+      const deliveries = await this.deliveryService.findByShippingManager(manager.id, status);
+      return {
+        message: 'Deliveries retrieved successfully',
+        data: deliveries,
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid shipping manager token');
+    }
   }
 }

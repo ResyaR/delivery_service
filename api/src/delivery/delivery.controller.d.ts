@@ -6,9 +6,11 @@ import { DeliveryStatus } from './delivery.entity';
 import { CreateMultiDropDeliveryDto } from './dto/create-multi-drop.dto';
 import { CreateScheduledDeliveryDto } from './dto/create-scheduled-delivery.dto';
 import { CreatePaketBesarDto } from './dto/create-paket-besar.dto';
+import { ShippingManagerService } from '../shipping-managers/shipping-manager.service';
 export declare class DeliveryController {
     private readonly deliveryService;
-    constructor(deliveryService: DeliveryService);
+    private readonly shippingManagerService;
+    constructor(deliveryService: DeliveryService, shippingManagerService: ShippingManagerService);
     createKirimSekarang(req: any, dto: CreateDeliveryDto): Promise<DeliveryCreateResponseDto>;
     createJadwal(req: any, dto: CreateDeliveryDto): Promise<DeliveryCreateResponseDto>;
     createTitipBeli(req: any, dto: CreateTitipBeliDto): Promise<DeliveryCreateResponseDto>;
@@ -29,4 +31,12 @@ export declare class DeliveryController {
         status: DeliveryStatus;
     }): Promise<DeliveryDetailResponseDto>;
     cancelDelivery(req: any, id: number): Promise<DeliveryDetailResponseDto>;
+    getDeliveriesByZone(token: string, zone: string, status?: DeliveryStatus): Promise<{
+        message: string;
+        data: import("./delivery.entity").Delivery[];
+    }>;
+    getMyDeliveries(token: string, status?: DeliveryStatus): Promise<{
+        message: string;
+        data: import("./delivery.entity").Delivery[];
+    }>;
 }

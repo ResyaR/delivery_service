@@ -3,6 +3,7 @@ export declare class CreateScheduledDeliveryDto {
     dropoffLocation: string;
     scheduledDate: string;
     scheduleTimeSlot: string;
+    zone?: number;
     barang?: {
         itemName: string;
         scale: string;

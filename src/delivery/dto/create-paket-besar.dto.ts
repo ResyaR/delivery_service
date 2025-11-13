@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsBoolean, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsBoolean, IsOptional, IsInt, Min, Max } from 'class-validator';
 
 export class CreatePaketBesarDto {
   @IsString()
@@ -18,6 +18,12 @@ export class CreatePaketBesarDto {
 
   @IsNumber()
   height: number; // cm
+
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  @IsOptional()
+  zone?: number; // Delivery zone 1-5
 
   @IsString()
   @IsOptional()

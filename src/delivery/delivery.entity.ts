@@ -97,6 +97,13 @@ export class Delivery {
   @Column({ nullable: true })
   scheduleTimeSlot?: string; // "09:00-12:00", "13:00-17:00", etc
 
+  // Zone and shipping manager assignment
+  @Column({ type: 'int', nullable: true })
+  deliveryZone?: number; // 1-5
+
+  @Column({ nullable: true })
+  shippingManagerId?: number;
+
   // Multi-drop specific
   @Column({ type: 'int', nullable: true })
   totalDropPoints?: number; // Jumlah drop points
