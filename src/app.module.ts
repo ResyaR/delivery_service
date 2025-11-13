@@ -13,6 +13,7 @@ import { RestaurantModule } from './restaurants/restaurant.module';
 import { MenuModule } from './menus/menu.module';
 import { OrderModule } from './orders/order.module';
 import { CartModule } from './carts/cart.module';
+import { ShippingManagerModule } from './shipping-managers/shipping-manager.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -87,6 +88,7 @@ import { CartModule } from './carts/cart.module';
     MenuModule,
     OrderModule,
     CartModule,
+    ShippingManagerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Order } from './order.entity';
+import { Order, DeliveryType } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { RestaurantService } from '../restaurants/restaurant.service';
+import { ShippingManagerService } from '../shipping-managers/shipping-manager.service';
 
 @Injectable()
 export class OrderService {
@@ -14,6 +15,7 @@ export class OrderService {
     @InjectRepository(OrderItem)
     private orderItemRepository: Repository<OrderItem>,
     private restaurantService: RestaurantService,
+    private shippingManagerService: ShippingManagerService,
   ) {}
 
   async create(userId: number, createOrderDto: CreateOrderDto): Promise<Order> {
@@ -25,8 +27,28 @@ export class OrderService {
       (sum, item) => sum + (item.price * item.quantity),
       0
     );
-    const deliveryFee = createOrderDto.deliveryFee || 10000; // Default 10k
+    
+    // Calculate delivery fee based on type
+    let deliveryFee = createOrderDto.deliveryFee || 10000; // Default 10k
+    if (createOrderDto.deliveryType === DeliveryType.EXPRESS) {
+      deliveryFee = deliveryFee * 1.5; // Express is 50% more expensive
+    }
+    
     const total = subtotal + deliveryFee;
+
+    // Assign shipping manager based on zone
+    let shippingManagerId: number | null = null;
+    try {
+      const shippingManagers = await this.shippingManagerService.findByZone(createOrderDto.deliveryZone);
+      if (shippingManagers.length > 0) {
+        // Assign to first available shipping manager in the zone
+        // In production, you might want to use round-robin or load balancing
+        shippingManagerId = shippingManagers[0].id;
+      }
+    } catch (error) {
+      // If no shipping manager found for zone, continue without assignment
+      console.warn(`No shipping manager found for zone ${createOrderDto.deliveryZone}`);
+    }
 
     // Create order
     const order = this.orderRepository.create({
@@ -36,6 +58,15 @@ export class OrderService {
       deliveryFee,
       total,
       deliveryAddress: createOrderDto.deliveryAddress,
+      deliveryCity: createOrderDto.deliveryCity,
+      deliveryProvince: createOrderDto.deliveryProvince,
+      deliveryPostalCode: createOrderDto.deliveryPostalCode,
+      deliveryZone: createOrderDto.deliveryZone,
+      deliveryType: createOrderDto.deliveryType || DeliveryType.REGULAR,
+      scheduledDate: createOrderDto.scheduledDate ? new Date(createOrderDto.scheduledDate) : null,
+      scheduledTime: createOrderDto.scheduledTime || null,
+      scheduleTimeSlot: createOrderDto.scheduleTimeSlot || null,
+      shippingManagerId,
       notes: createOrderDto.notes,
       customerName: createOrderDto.customerName,
       customerPhone: createOrderDto.customerPhone,
@@ -86,7 +117,7 @@ export class OrderService {
   async findOne(id: number): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { id },
-      relations: ['items', 'restaurant', 'user'],
+      relations: ['items', 'restaurant', 'user', 'shippingManager'],
     });
     
     if (!order) {
