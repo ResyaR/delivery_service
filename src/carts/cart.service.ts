@@ -50,6 +50,14 @@ export class CartService {
     if (!cart) {
       cart = this.cartRepository.create({ userId });
       cart = await this.cartRepository.save(cart);
+      // CRITICAL: Reload cart after save to ensure id is populated from database
+      cart = await this.cartRepository.findOne({
+        where: { userId },
+        relations: ['items', 'items.menu', 'items.menu.restaurant'],
+      });
+      if (!cart || !cart.id) {
+        throw new Error('Failed to create cart with valid ID');
+      }
     }
 
     // CRITICAL: Ensure cart.id is always set before proceeding
@@ -128,21 +136,31 @@ export class CartService {
         .execute();
     } else {
       // Create new cart item
-      // Double-check cart.id is still valid
+      // CRITICAL: Double-check cart.id is still valid and reload if needed
       if (!cart.id) {
-        throw new Error(`Cart ID is undefined when creating new cart item. Cart: ${JSON.stringify(cart)}`);
+        // Reload cart one more time to ensure id is valid
+        cart = await this.cartRepository.findOne({
+          where: { userId },
+          select: ['id'], // Only select id for performance
+        });
+        if (!cart || !cart.id) {
+          throw new Error(`Cart ID is undefined when creating new cart item. User ID: ${userId}`);
+        }
       }
-      const cartItem = this.cartItemRepository.create({
-        cartId: cart.id,
-        menuId: addItemDto.menuId,
-        quantity: addItemDto.quantity,
-        price: menu.price,
-      });
-      // Verify cartId is set
-      if (!cartItem.cartId) {
-        throw new Error(`Failed to set cartId on new cart item. Cart ID: ${cart.id}`);
-      }
-      await this.cartItemRepository.save(cartItem);
+      
+      // Use query builder to insert directly - more reliable than save()
+      // This ensures cartId is always set correctly
+      await this.cartItemRepository
+        .createQueryBuilder()
+        .insert()
+        .into(CartItem)
+        .values({
+          cartId: cart.id,
+          menuId: addItemDto.menuId,
+          quantity: addItemDto.quantity,
+          price: menu.price,
+        })
+        .execute();
     }
 
     // Update cart restaurant ID
