@@ -87,19 +87,8 @@ export class CartService {
       throw new BadRequestException(`Menu ${menu.name} is not available`);
     }
 
-    // Check if cart already has items from a different restaurant
-    if (cart.items && cart.items.length > 0) {
-      // Get existing restaurant ID from cart's restaurantId or first item's menu
-      const existingRestaurantId = cart.restaurantId || 
-        (cart.items[0].menu?.restaurant?.id);
-      const newRestaurantId = menu.restaurant.id;
-
-      if (existingRestaurantId && existingRestaurantId !== newRestaurantId) {
-        throw new BadRequestException(
-          'Cannot add items from different restaurants. Please clear your cart first.'
-        );
-      }
-    }
+    // Biarkan semua item dari berbagai restaurant bisa ditambahkan ke cart yang sama
+    // Tidak ada lagi pembatasan restaurant
 
     // Check if item already exists in cart
     const existingItem = cart.items?.find(item => item.menuId === addItemDto.menuId);
