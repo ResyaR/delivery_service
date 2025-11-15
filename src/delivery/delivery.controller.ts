@@ -405,12 +405,24 @@ export class DeliveryController {
     @Query('status') status?: DeliveryStatus,
   ) {
     try {
+      if (!token) {
+        throw new UnauthorizedException('Shipping manager token is required');
+      }
+      
       const manager = await this.shippingManagerService.findByToken(token);
+      if (!manager) {
+        throw new UnauthorizedException('Invalid shipping manager token');
+      }
+      
       // Verify manager zone matches requested zone
-      if (manager.zone !== parseInt(zone)) {
+      const zoneNumber = parseInt(zone);
+      if (manager.zone !== zoneNumber) {
         throw new UnauthorizedException('You can only access deliveries from your assigned zone');
       }
-      const deliveries = await this.deliveryService.findByZone(parseInt(zone), status);
+      
+      const deliveries = await this.deliveryService.findByZone(zoneNumber, status);
+      console.log(`[DeliveryController] Found ${deliveries.length} deliveries for zone ${zoneNumber}${status ? ` with status ${status}` : ''}`);
+      
       return {
         message: 'Deliveries retrieved successfully',
         data: deliveries,
@@ -419,6 +431,7 @@ export class DeliveryController {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
+      console.error('[DeliveryController] Error getting deliveries by zone:', error);
       throw new UnauthorizedException('Invalid shipping manager token');
     }
   }
