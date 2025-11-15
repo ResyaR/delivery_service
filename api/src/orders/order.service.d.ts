@@ -20,4 +20,6 @@ export declare class OrderService {
     getRestaurantOrders(restaurantId: number): Promise<Order[]>;
     calculateRevenue(): Promise<number>;
     getTotalOrders(): Promise<number>;
+    findByOrderNumber(userId: number, orderNumber: string): Promise<Order>;
+    findByOrderNumberPublic(orderNumber: string): Promise<Order>;
 }

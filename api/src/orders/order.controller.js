@@ -53,6 +53,20 @@ let OrderController = class OrderController {
             data: orders,
         };
     }
+    async trackOrder(req, orderNumber) {
+        const order = await this.orderService.findByOrderNumber(req.user.id, orderNumber);
+        return {
+            message: 'Order found successfully',
+            data: order,
+        };
+    }
+    async trackOrderPublic(orderNumber) {
+        const order = await this.orderService.findByOrderNumberPublic(orderNumber);
+        return {
+            message: 'Resi ditemukan',
+            data: order,
+        };
+    }
     async getRestaurantOrders(adminKey, restaurantId) {
         this.validateAdminKey(adminKey);
         const orders = await this.orderService.getRestaurantOrders(+restaurantId);
@@ -79,10 +93,15 @@ let OrderController = class OrderController {
     async getOrdersByZone(token, zone, status) {
         try {
             const manager = await this.shippingManagerService.findByToken(token);
-            if (manager.zone !== parseInt(zone)) {
+            if (!manager) {
+                throw new common_1.UnauthorizedException('Invalid shipping manager token');
+            }
+            const zoneNumber = parseInt(zone);
+            if (manager.zone !== zoneNumber) {
                 throw new common_1.UnauthorizedException('You can only access orders from your assigned zone');
             }
-            const orders = await this.orderService.findByZone(parseInt(zone), status);
+            const orders = await this.orderService.findByZone(zoneNumber, status);
+            console.log(`[OrderController] Found ${orders.length} orders for zone ${zoneNumber}${status ? ` with status ${status}` : ''}`);
             return {
                 message: 'Orders retrieved successfully',
                 data: orders,
@@ -92,6 +111,7 @@ let OrderController = class OrderController {
             if (error instanceof common_1.UnauthorizedException) {
                 throw error;
             }
+            console.error('[OrderController] Error getting orders by zone:', error);
             throw new common_1.UnauthorizedException('Invalid shipping manager token');
         }
     }
@@ -105,6 +125,29 @@ let OrderController = class OrderController {
             };
         }
         catch (error) {
+            throw new common_1.UnauthorizedException('Invalid shipping manager token');
+        }
+    }
+    async updateStatusByShippingManager(token, id, updateStatusDto) {
+        try {
+            const manager = await this.shippingManagerService.findByToken(token);
+            const order = await this.orderService.findOne(+id);
+            if (order.deliveryZone !== manager.zone) {
+                throw new common_1.UnauthorizedException('You can only update orders from your assigned zone');
+            }
+            const updatedOrder = await this.orderService.updateStatus(+id, updateStatusDto.status);
+            return {
+                message: 'Order status updated successfully',
+                data: updatedOrder,
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.UnauthorizedException) {
+                throw error;
+            }
+            if (error instanceof common_1.NotFoundException) {
+                throw error;
+            }
             throw new common_1.UnauthorizedException('Invalid shipping manager token');
         }
     }
@@ -150,6 +193,30 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], OrderController.prototype, "getMyOrders", null);
+__decorate([
+    (0, common_1.Get)('track/:orderNumber'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Track order by order number (User authenticated)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Order found successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Order not found' }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('orderNumber')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], OrderController.prototype, "trackOrder", null);
+__decorate([
+    (0, common_1.Get)('public/track/:orderNumber'),
+    (0, swagger_1.ApiOperation)({ summary: 'Track order by resi number (Public - No login required)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Order found successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Order not found' }),
+    __param(0, (0, common_1.Param)('orderNumber')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], OrderController.prototype, "trackOrderPublic", null);
 __decorate([
     (0, common_1.Get)('restaurant/:restaurantId'),
     (0, swagger_1.ApiOperation)({ summary: 'Get restaurant orders (Admin only)' }),
@@ -215,6 +282,21 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], OrderController.prototype, "getMyShippingManagerOrders", null);
+__decorate([
+    (0, common_1.Patch)('shipping-manager/:id/status'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update order status (Shipping Manager)' }),
+    (0, swagger_1.ApiHeader)({ name: 'shipping-manager-token', required: true }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Order status updated successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    (0, swagger_1.ApiResponse)({ status: 403, description: 'Forbidden - Order not in your zone' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Order not found' }),
+    __param(0, (0, common_1.Headers)('shipping-manager-token')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, update_order_status_dto_1.UpdateOrderStatusDto]),
+    __metadata("design:returntype", Promise)
+], OrderController.prototype, "updateStatusByShippingManager", null);
 exports.OrderController = OrderController = __decorate([
     (0, swagger_1.ApiTags)('orders'),
     (0, common_1.Controller)('orders'),

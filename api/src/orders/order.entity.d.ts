@@ -32,6 +32,7 @@ export declare class Order {
     notes: string;
     customerName: string;
     customerPhone: string;
+    orderNumber: string;
     createdAt: Date;
     updatedAt: Date;
 }

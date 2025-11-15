@@ -123,11 +123,19 @@ let DeliveryController = class DeliveryController {
     }
     async getDeliveriesByZone(token, zone, status) {
         try {
+            if (!token) {
+                throw new common_1.UnauthorizedException('Shipping manager token is required');
+            }
             const manager = await this.shippingManagerService.findByToken(token);
-            if (manager.zone !== parseInt(zone)) {
+            if (!manager) {
+                throw new common_1.UnauthorizedException('Invalid shipping manager token');
+            }
+            const zoneNumber = parseInt(zone);
+            if (manager.zone !== zoneNumber) {
                 throw new common_1.UnauthorizedException('You can only access deliveries from your assigned zone');
             }
-            const deliveries = await this.deliveryService.findByZone(parseInt(zone), status);
+            const deliveries = await this.deliveryService.findByZone(zoneNumber, status);
+            console.log(`[DeliveryController] Found ${deliveries.length} deliveries for zone ${zoneNumber}${status ? ` with status ${status}` : ''}`);
             return {
                 message: 'Deliveries retrieved successfully',
                 data: deliveries,
@@ -137,6 +145,7 @@ let DeliveryController = class DeliveryController {
             if (error instanceof common_1.UnauthorizedException) {
                 throw error;
             }
+            console.error('[DeliveryController] Error getting deliveries by zone:', error);
             throw new common_1.UnauthorizedException('Invalid shipping manager token');
         }
     }

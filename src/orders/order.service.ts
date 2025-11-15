@@ -51,7 +51,7 @@ export class OrderService {
     }
 
     // Generate orderNumber format MT-XXXXXX (kombinasi huruf dan angka)
-    let orderNumber: string;
+    let orderNumber: string = '';
     let isUnique = false;
     let attempts = 0;
     const maxAttempts = 10;
@@ -82,7 +82,7 @@ export class OrderService {
       attempts++;
     }
 
-    if (!isUnique) {
+    if (!isUnique || !orderNumber) {
       // Fallback: use timestamp-based code if random generation fails
       const timestamp = Date.now().toString(36).toUpperCase().slice(-6);
       orderNumber = `MT-${timestamp}`;

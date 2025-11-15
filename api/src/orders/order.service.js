@@ -45,6 +45,33 @@ let OrderService = class OrderService {
         catch (error) {
             console.warn(`No shipping manager found for zone ${createOrderDto.deliveryZone}`);
         }
+        let orderNumber = '';
+        let isUnique = false;
+        let attempts = 0;
+        const maxAttempts = 10;
+        const generateRandomCode = (length) => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        };
+        while (!isUnique && attempts < maxAttempts) {
+            const randomCode = generateRandomCode(6);
+            orderNumber = `MT-${randomCode}`;
+            const existing = await this.orderRepository.findOne({
+                where: { orderNumber },
+            });
+            if (!existing) {
+                isUnique = true;
+            }
+            attempts++;
+        }
+        if (!isUnique || !orderNumber) {
+            const timestamp = Date.now().toString(36).toUpperCase().slice(-6);
+            orderNumber = `MT-${timestamp}`;
+        }
         const order = this.orderRepository.create({
             userId,
             restaurantId: createOrderDto.restaurantId,
@@ -64,6 +91,7 @@ let OrderService = class OrderService {
             notes: createOrderDto.notes,
             customerName: createOrderDto.customerName,
             customerPhone: createOrderDto.customerPhone,
+            orderNumber: orderNumber,
             status: 'pending',
         });
         const savedOrder = await this.orderRepository.save(order);
@@ -104,7 +132,16 @@ let OrderService = class OrderService {
             query.andWhere('order.status = :status', { status });
         }
         query.orderBy('order.createdAt', 'DESC');
-        return await query.getMany();
+        const orders = await query.getMany();
+        console.log(`[OrderService] findByZone: Found ${orders.length} orders for zone ${zone}${status ? ` with status ${status}` : ''}`);
+        if (orders.length > 0) {
+            console.log(`[OrderService] First order: ID=${orders[0].id}, Zone=${orders[0].deliveryZone}, Status=${orders[0].status}`);
+        }
+        else {
+            const allOrders = await this.orderRepository.find({ where: { deliveryZone: zone } });
+            console.log(`[OrderService] Debug: Total orders with zone ${zone} in DB: ${allOrders.length}`);
+        }
+        return orders;
     }
     async findByShippingManager(shippingManagerId, status) {
         const query = this.orderRepository.createQueryBuilder('order')
@@ -155,6 +192,43 @@ let OrderService = class OrderService {
     }
     async getTotalOrders() {
         return await this.orderRepository.count();
+    }
+    async findByOrderNumber(userId, orderNumber) {
+        let normalizedOrderNumber = orderNumber.trim().toUpperCase();
+        if (!normalizedOrderNumber.startsWith('MT-')) {
+            normalizedOrderNumber = `MT-${normalizedOrderNumber}`;
+        }
+        if (!normalizedOrderNumber.match(/^MT-[A-Z0-9]{6}$/)) {
+            throw new common_1.NotFoundException('Nomor resi tidak valid. Format: MT-XXXXXX (6 karakter huruf/angka)');
+        }
+        const order = await this.orderRepository.findOne({
+            where: { orderNumber: normalizedOrderNumber },
+            relations: ['items', 'restaurant', 'user', 'shippingManager'],
+        });
+        if (!order) {
+            throw new common_1.NotFoundException(`Resi ${normalizedOrderNumber} tidak ditemukan`);
+        }
+        if (order.userId !== userId) {
+            throw new common_1.NotFoundException(`Resi ${normalizedOrderNumber} tidak ditemukan`);
+        }
+        return order;
+    }
+    async findByOrderNumberPublic(orderNumber) {
+        let normalizedOrderNumber = orderNumber.trim().toUpperCase();
+        if (!normalizedOrderNumber.startsWith('MT-')) {
+            normalizedOrderNumber = `MT-${normalizedOrderNumber}`;
+        }
+        if (!normalizedOrderNumber.match(/^MT-[A-Z0-9]{6}$/)) {
+            throw new common_1.NotFoundException('Nomor resi tidak valid. Format: MT-XXXXXX (6 karakter huruf/angka)');
+        }
+        const order = await this.orderRepository.findOne({
+            where: { orderNumber: normalizedOrderNumber },
+            relations: ['items', 'restaurant', 'user', 'shippingManager'],
+        });
+        if (!order) {
+            throw new common_1.NotFoundException(`Resi ${normalizedOrderNumber} tidak ditemukan`);
+        }
+        return order;
     }
 };
 exports.OrderService = OrderService;

@@ -128,6 +128,10 @@ __decorate([
     __metadata("design:type", String)
 ], Order.prototype, "customerPhone", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 50, nullable: true, unique: true }),
+    __metadata("design:type", String)
+], Order.prototype, "orderNumber", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)({ type: 'timestamp' }),
     __metadata("design:type", Date)
 ], Order.prototype, "createdAt", void 0);

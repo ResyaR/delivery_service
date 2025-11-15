@@ -10,6 +10,7 @@ const swagger_1 = require("./swagger");
 const platform_express_1 = require("@nestjs/platform-express");
 const express_1 = __importDefault(require("express"));
 const common_1 = require("@nestjs/common");
+const http_exception_filter_1 = require("./common/filters/http-exception.filter");
 let app;
 let server = null;
 let isShuttingDown = false;
@@ -58,9 +59,10 @@ async function bootstrap() {
         app.enableCors({
             origin: true,
             methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-            allowedHeaders: ['Content-Type', 'Authorization', 'admin-key'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'admin-key', 'shipping-manager-token'],
             credentials: true,
         });
+        app.useGlobalFilters(new http_exception_filter_1.AllExceptionsFilter());
         app.useGlobalPipes(new common_1.ValidationPipe({
             transform: true,
             whitelist: true,
@@ -83,7 +85,7 @@ async function handler(req, res) {
     if (req.method === 'OPTIONS') {
         res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, admin-key');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, admin-key, shipping-manager-token');
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         return res.status(204).end();
     }

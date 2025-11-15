@@ -20,6 +20,14 @@ export declare class OrderController {
         message: string;
         data: import("./order.entity").Order[];
     }>;
+    trackOrder(req: any, orderNumber: string): Promise<{
+        message: string;
+        data: import("./order.entity").Order;
+    }>;
+    trackOrderPublic(orderNumber: string): Promise<{
+        message: string;
+        data: import("./order.entity").Order;
+    }>;
     getRestaurantOrders(adminKey: string, restaurantId: string): Promise<{
         message: string;
         data: import("./order.entity").Order[];
@@ -39,5 +47,9 @@ export declare class OrderController {
     getMyShippingManagerOrders(token: string, status?: string): Promise<{
         message: string;
         data: import("./order.entity").Order[];
+    }>;
+    updateStatusByShippingManager(token: string, id: string, updateStatusDto: UpdateOrderStatusDto): Promise<{
+        message: string;
+        data: import("./order.entity").Order;
     }>;
 }
