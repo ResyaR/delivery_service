@@ -10,6 +10,7 @@ import {
   Request,
   Headers,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiHeader } from '@nestjs/swagger';
 import { OrderService } from './order.service';
@@ -85,6 +86,41 @@ export class OrderController {
     return {
       message: 'Orders retrieved successfully',
       data: orders,
+    };
+  }
+
+  @Get('track/:orderNumber')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Track order by order number (User authenticated)' })
+  @ApiResponse({ status: 200, description: 'Order found successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async trackOrder(
+    @Request() req,
+    @Param('orderNumber') orderNumber: string,
+  ) {
+    const order = await this.orderService.findByOrderNumber(
+      req.user.id,
+      orderNumber,
+    );
+    return {
+      message: 'Order found successfully',
+      data: order,
+    };
+  }
+
+  @Get('public/track/:orderNumber')
+  @ApiOperation({ summary: 'Track order by resi number (Public - No login required)' })
+  @ApiResponse({ status: 200, description: 'Order found successfully' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async trackOrderPublic(
+    @Param('orderNumber') orderNumber: string,
+  ) {
+    const order = await this.orderService.findByOrderNumberPublic(orderNumber);
+    return {
+      message: 'Resi ditemukan',
+      data: order,
     };
   }
 
@@ -186,6 +222,43 @@ export class OrderController {
         data: orders,
       };
     } catch (error) {
+      throw new UnauthorizedException('Invalid shipping manager token');
+    }
+  }
+
+  @Patch('shipping-manager/:id/status')
+  @ApiOperation({ summary: 'Update order status (Shipping Manager)' })
+  @ApiHeader({ name: 'shipping-manager-token', required: true })
+  @ApiResponse({ status: 200, description: 'Order status updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Order not in your zone' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async updateStatusByShippingManager(
+    @Headers('shipping-manager-token') token: string,
+    @Param('id') id: string,
+    @Body() updateStatusDto: UpdateOrderStatusDto,
+  ) {
+    try {
+      const manager = await this.shippingManagerService.findByToken(token);
+      const order = await this.orderService.findOne(+id);
+      
+      // Verify order is in shipping manager's zone
+      if (order.deliveryZone !== manager.zone) {
+        throw new UnauthorizedException('You can only update orders from your assigned zone');
+      }
+      
+      const updatedOrder = await this.orderService.updateStatus(+id, updateStatusDto.status);
+      return {
+        message: 'Order status updated successfully',
+        data: updatedOrder,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       throw new UnauthorizedException('Invalid shipping manager token');
     }
   }

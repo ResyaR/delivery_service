@@ -91,6 +91,9 @@ export class Order {
   @Column({ nullable: true })
   customerPhone: string;
 
+  @Column({ type: 'varchar', length: 50, nullable: true, unique: true })
+  orderNumber: string; // Nomor resi format MT-XXXXXX (kombinasi huruf dan angka)
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
