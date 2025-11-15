@@ -166,7 +166,20 @@ export class OrderService {
     }
     
     query.orderBy('order.createdAt', 'DESC');
-    return await query.getMany();
+    
+    const orders = await query.getMany();
+    console.log(`[OrderService] findByZone: Found ${orders.length} orders for zone ${zone}${status ? ` with status ${status}` : ''}`);
+    
+    // Debug: log first order if exists
+    if (orders.length > 0) {
+      console.log(`[OrderService] First order: ID=${orders[0].id}, Zone=${orders[0].deliveryZone}, Status=${orders[0].status}`);
+    } else {
+      // Check if there are any orders with this zone
+      const allOrders = await this.orderRepository.find({ where: { deliveryZone: zone } });
+      console.log(`[OrderService] Debug: Total orders with zone ${zone} in DB: ${allOrders.length}`);
+    }
+    
+    return orders;
   }
 
   async findByShippingManager(shippingManagerId: number, status?: string): Promise<Order[]> {

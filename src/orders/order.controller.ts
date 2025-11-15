@@ -187,11 +187,19 @@ export class OrderController {
   ) {
     try {
       const manager = await this.shippingManagerService.findByToken(token);
+      if (!manager) {
+        throw new UnauthorizedException('Invalid shipping manager token');
+      }
+      
       // Verify manager zone matches requested zone
-      if (manager.zone !== parseInt(zone)) {
+      const zoneNumber = parseInt(zone);
+      if (manager.zone !== zoneNumber) {
         throw new UnauthorizedException('You can only access orders from your assigned zone');
       }
-      const orders = await this.orderService.findByZone(parseInt(zone), status);
+      
+      const orders = await this.orderService.findByZone(zoneNumber, status);
+      console.log(`[OrderController] Found ${orders.length} orders for zone ${zoneNumber}${status ? ` with status ${status}` : ''}`);
+      
       return {
         message: 'Orders retrieved successfully',
         data: orders,
@@ -200,6 +208,7 @@ export class OrderController {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
+      console.error('[OrderController] Error getting orders by zone:', error);
       throw new UnauthorizedException('Invalid shipping manager token');
     }
   }
