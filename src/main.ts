@@ -5,6 +5,7 @@ import { setupSwagger } from './swagger';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
 import { ValidationPipe } from '@nestjs/common';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 let app: any;
 let server: express.Express | null = null;
@@ -70,6 +71,9 @@ async function bootstrap() {
       allowedHeaders: ['Content-Type', 'Authorization', 'admin-key', 'shipping-manager-token'], // Include admin-key and shipping-manager-token headers
       credentials: true,
     });
+    
+    // Use global exception filter to ensure CORS headers are always set
+    app.useGlobalFilters(new AllExceptionsFilter());
     
     // Enable validation pipes
     app.useGlobalPipes(new ValidationPipe({
