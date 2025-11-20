@@ -135,7 +135,6 @@ let DeliveryController = class DeliveryController {
                 throw new common_1.UnauthorizedException('You can only access deliveries from your assigned zone');
             }
             const deliveries = await this.deliveryService.findByZone(zoneNumber, status);
-            console.log(`[DeliveryController] Found ${deliveries.length} deliveries for zone ${zoneNumber}${status ? ` with status ${status}` : ''}`);
             return {
                 message: 'Deliveries retrieved successfully',
                 data: deliveries,
@@ -160,6 +159,43 @@ let DeliveryController = class DeliveryController {
         }
         catch (error) {
             throw new common_1.UnauthorizedException('Invalid shipping manager token');
+        }
+    }
+    async updateStatusByShippingManager(token, id, body) {
+        try {
+            if (!token) {
+                throw new common_1.UnauthorizedException('Shipping manager token is required');
+            }
+            const manager = await this.shippingManagerService.findByToken(token);
+            if (!manager) {
+                throw new common_1.UnauthorizedException('Invalid shipping manager token');
+            }
+            const delivery = await this.deliveryService.updateStatusByShippingManager(Number(id), body.status, manager.zone);
+            return {
+                message: 'Status updated successfully',
+                data: delivery,
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.UnauthorizedException || error instanceof common_1.BadRequestException) {
+                throw error;
+            }
+            throw new common_1.UnauthorizedException('Invalid shipping manager token');
+        }
+    }
+    async trackDelivery(resiCode) {
+        try {
+            const delivery = await this.deliveryService.findByResiCode(resiCode);
+            return {
+                message: 'Delivery found successfully',
+                data: delivery,
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException) {
+                throw error;
+            }
+            throw new common_1.NotFoundException('Delivery not found');
         }
     }
 };
@@ -536,6 +572,43 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], DeliveryController.prototype, "getMyDeliveries", null);
+__decorate([
+    (0, common_1.Put)('shipping-manager/:id/update-status'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update delivery status by shipping manager' }),
+    (0, swagger_1.ApiHeader)({ name: 'shipping-manager-token', required: true }),
+    (0, swagger_1.ApiParam)({ name: 'id', type: Number }),
+    (0, swagger_1.ApiBody)({ schema: {
+            type: 'object',
+            properties: {
+                status: {
+                    type: 'string',
+                    enum: Object.values(delivery_entity_1.DeliveryStatus),
+                    example: 'accepted'
+                }
+            },
+            required: ['status']
+        } }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Status updated successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Bad request - invalid status transition or zone mismatch' }),
+    __param(0, (0, common_1.Headers)('shipping-manager-token')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], DeliveryController.prototype, "updateStatusByShippingManager", null);
+__decorate([
+    (0, common_1.Get)('public/track/:resiCode'),
+    (0, swagger_1.ApiOperation)({ summary: 'Track delivery by resi code (public endpoint)' }),
+    (0, swagger_1.ApiParam)({ name: 'resiCode', type: String, description: 'Resi code (format: MT-DEL-XXXXXX)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Delivery found successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Delivery not found' }),
+    __param(0, (0, common_1.Param)('resiCode')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], DeliveryController.prototype, "trackDelivery", null);
 exports.DeliveryController = DeliveryController = __decorate([
     (0, swagger_1.ApiTags)('delivery'),
     (0, swagger_1.ApiBearerAuth)(),

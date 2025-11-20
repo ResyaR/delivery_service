@@ -39,4 +39,14 @@ export declare class DeliveryController {
         message: string;
         data: import("./delivery.entity").Delivery[];
     }>;
+    updateStatusByShippingManager(token: string, id: string, body: {
+        status: DeliveryStatus;
+    }): Promise<{
+        message: string;
+        data: import("./delivery.entity").Delivery;
+    }>;
+    trackDelivery(resiCode: string): Promise<{
+        message: string;
+        data: import("./delivery.entity").Delivery;
+    }>;
 }

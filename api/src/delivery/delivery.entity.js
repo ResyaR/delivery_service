@@ -123,6 +123,10 @@ __decorate([
     __metadata("design:type", Number)
 ], Delivery.prototype, "shippingManagerId", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true, unique: true }),
+    __metadata("design:type", String)
+], Delivery.prototype, "resiCode", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'int', nullable: true }),
     __metadata("design:type", Number)
 ], Delivery.prototype, "totalDropPoints", void 0);

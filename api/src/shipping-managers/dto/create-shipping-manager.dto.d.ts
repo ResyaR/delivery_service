@@ -3,4 +3,5 @@ export declare class CreateShippingManagerDto {
     email: string;
     phone: string;
     zone: number;
+    token?: string;
 }

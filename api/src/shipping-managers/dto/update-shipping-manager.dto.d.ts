@@ -4,4 +4,5 @@ export declare class UpdateShippingManagerDto {
     phone?: string;
     zone?: number;
     isActive?: boolean;
+    token?: string;
 }

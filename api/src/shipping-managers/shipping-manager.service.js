@@ -68,18 +68,33 @@ let ShippingManagerService = class ShippingManagerService {
         if (existingEmail) {
             throw new common_1.ConflictException('Email already exists');
         }
-        let token = this.generateToken();
-        let existingToken = await this.shippingManagerRepository.findOne({
-            where: { token },
-        });
-        while (existingToken) {
+        let token;
+        if (createDto.token && createDto.token.trim()) {
+            const existingToken = await this.shippingManagerRepository.findOne({
+                where: { token: createDto.token.trim() },
+            });
+            if (existingToken) {
+                throw new common_1.ConflictException('Token already exists. Please use a different token.');
+            }
+            token = createDto.token.trim();
+        }
+        else {
             token = this.generateToken();
-            existingToken = await this.shippingManagerRepository.findOne({
+            let existingToken = await this.shippingManagerRepository.findOne({
                 where: { token },
             });
+            while (existingToken) {
+                token = this.generateToken();
+                existingToken = await this.shippingManagerRepository.findOne({
+                    where: { token },
+                });
+            }
         }
         const shippingManager = this.shippingManagerRepository.create({
-            ...createDto,
+            name: createDto.name,
+            email: createDto.email,
+            phone: createDto.phone,
+            zone: createDto.zone,
             token,
         });
         return await this.shippingManagerRepository.save(shippingManager);
@@ -156,7 +171,25 @@ let ShippingManagerService = class ShippingManagerService {
                 throw new common_1.ConflictException('Email already exists');
             }
         }
-        Object.assign(shippingManager, updateDto);
+        if (updateDto.token && updateDto.token.trim() && updateDto.token.trim() !== shippingManager.token) {
+            const existingToken = await this.shippingManagerRepository.findOne({
+                where: { token: updateDto.token.trim() },
+            });
+            if (existingToken) {
+                throw new common_1.ConflictException('Token already exists. Please use a different token.');
+            }
+            shippingManager.token = updateDto.token.trim();
+        }
+        if (updateDto.name !== undefined)
+            shippingManager.name = updateDto.name;
+        if (updateDto.email !== undefined)
+            shippingManager.email = updateDto.email;
+        if (updateDto.phone !== undefined)
+            shippingManager.phone = updateDto.phone;
+        if (updateDto.zone !== undefined)
+            shippingManager.zone = updateDto.zone;
+        if (updateDto.isActive !== undefined)
+            shippingManager.isActive = updateDto.isActive;
         return await this.shippingManagerRepository.save(shippingManager);
     }
     async regenerateToken(id) {

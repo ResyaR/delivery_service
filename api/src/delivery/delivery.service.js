@@ -26,12 +26,40 @@ let DeliveryService = class DeliveryService {
         this.multiDropLocationRepository = multiDropLocationRepository;
         this.shippingManagerService = shippingManagerService;
     }
+    async generateResiCode() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let resiCode = '';
+        let isUnique = false;
+        let attempts = 0;
+        const maxAttempts = 10;
+        while (!isUnique && attempts < maxAttempts) {
+            let randomCode = '';
+            for (let i = 0; i < 6; i++) {
+                randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            resiCode = `MT-DEL-${randomCode}`;
+            const existing = await this.deliveryRepository.findOne({
+                where: { resiCode },
+            });
+            if (!existing) {
+                isUnique = true;
+            }
+            attempts++;
+        }
+        if (!isUnique || !resiCode) {
+            const timestamp = Date.now().toString(36).toUpperCase().slice(-6);
+            resiCode = `MT-DEL-${timestamp}`;
+        }
+        return resiCode;
+    }
     async create(userId, dto, type) {
+        const resiCode = await this.generateResiCode();
         const delivery = this.deliveryRepository.create({
             userId,
             ...dto,
             type,
             status: delivery_entity_1.DeliveryStatus.PENDING,
+            resiCode,
         });
         return await this.deliveryRepository.save(delivery);
     }
@@ -140,6 +168,16 @@ let DeliveryService = class DeliveryService {
         }
         return delivery;
     }
+    async findByResiCode(resiCode) {
+        const delivery = await this.deliveryRepository.findOne({
+            where: { resiCode },
+            relations: ['user', 'multiDropLocations']
+        });
+        if (!delivery) {
+            throw new common_1.NotFoundException(`Delivery with resi code ${resiCode} not found`);
+        }
+        return delivery;
+    }
     async assignDriver(id, driverId) {
         const delivery = await this.findOneById(id);
         if (delivery.status !== delivery_entity_1.DeliveryStatus.PENDING) {
@@ -192,6 +230,7 @@ let DeliveryService = class DeliveryService {
     }
     async createMultiDropDelivery(userId, createDto) {
         const price = this.calculateMultiDropPrice(createDto.dropLocations);
+        const resiCode = await this.generateResiCode();
         const delivery = this.deliveryRepository.create({
             userId,
             type: delivery_type_enum_1.DeliveryType.MULTI_DROP,
@@ -201,6 +240,7 @@ let DeliveryService = class DeliveryService {
             totalDropPoints: createDto.dropLocations.length,
             totalDistance: createDto.estimatedDistance,
             notes: createDto.notes,
+            resiCode,
         });
         const savedDelivery = await this.deliveryRepository.save(delivery);
         const locations = createDto.dropLocations.map(loc => this.multiDropLocationRepository.create({
@@ -235,6 +275,7 @@ let DeliveryService = class DeliveryService {
                 console.warn(`No shipping manager found for zone ${zone}`);
             }
         }
+        const resiCode = await this.generateResiCode();
         const delivery = this.deliveryRepository.create({
             userId,
             type: delivery_type_enum_1.DeliveryType.JADWAL,
@@ -247,6 +288,7 @@ let DeliveryService = class DeliveryService {
             notes: createDto.notes,
             deliveryZone: zone,
             shippingManagerId,
+            resiCode,
         });
         return this.deliveryRepository.save(delivery);
     }
@@ -266,6 +308,7 @@ let DeliveryService = class DeliveryService {
                 console.warn(`No shipping manager found for zone ${zone}`);
             }
         }
+        const resiCode = await this.generateResiCode();
         const delivery = this.deliveryRepository.create({
             userId,
             type: delivery_type_enum_1.DeliveryType.PAKET_BESAR,
@@ -287,6 +330,7 @@ let DeliveryService = class DeliveryService {
             notes: createDto.notes,
             deliveryZone: zone,
             shippingManagerId,
+            resiCode,
         });
         return this.deliveryRepository.save(delivery);
     }
@@ -331,6 +375,38 @@ let DeliveryService = class DeliveryService {
             query.andWhere('delivery.status = :status', { status });
         }
         return await query.getMany();
+    }
+    async updateStatusByShippingManager(id, status, shippingManagerZone) {
+        const delivery = await this.findOneById(id);
+        if (!delivery.deliveryZone || delivery.deliveryZone !== shippingManagerZone) {
+            throw new common_1.BadRequestException('You can only update deliveries from your assigned zone');
+        }
+        if (delivery.status === delivery_entity_1.DeliveryStatus.DELIVERED || delivery.status === delivery_entity_1.DeliveryStatus.CANCELLED) {
+            throw new common_1.BadRequestException(`Cannot change status from ${delivery.status}`);
+        }
+        if (status === delivery_entity_1.DeliveryStatus.CANCELLED) {
+            throw new common_1.BadRequestException('Cannot change to cancelled status. Use cancel endpoint instead.');
+        }
+        const statusOrder = [
+            delivery_entity_1.DeliveryStatus.PENDING,
+            delivery_entity_1.DeliveryStatus.ACCEPTED,
+            delivery_entity_1.DeliveryStatus.PICKED_UP,
+            delivery_entity_1.DeliveryStatus.IN_TRANSIT,
+            delivery_entity_1.DeliveryStatus.DELIVERED
+        ];
+        const currentIndex = statusOrder.indexOf(delivery.status);
+        const newIndex = statusOrder.indexOf(status);
+        if (newIndex < currentIndex - 1) {
+            throw new common_1.BadRequestException(`Cannot change status from ${delivery.status} to ${status}. Allowed transitions: forward or one step backward.`);
+        }
+        delivery.status = status;
+        if (status === delivery_entity_1.DeliveryStatus.IN_TRANSIT) {
+            delivery.estimatedArrival = new Date(Date.now() + 30 * 60 * 1000);
+        }
+        if (status === delivery_entity_1.DeliveryStatus.DELIVERED) {
+            delivery.actualArrival = new Date();
+        }
+        return await this.deliveryRepository.save(delivery);
     }
 };
 exports.DeliveryService = DeliveryService;

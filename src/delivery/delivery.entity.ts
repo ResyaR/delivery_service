@@ -104,6 +104,9 @@ export class Delivery {
   @Column({ nullable: true })
   shippingManagerId?: number;
 
+  @Column({ nullable: true, unique: true })
+  resiCode?: string; // Kode resi pengiriman (format: MT-DEL-XXXXXX)
+
   // Multi-drop specific
   @Column({ type: 'int', nullable: true })
   totalDropPoints?: number; // Jumlah drop points

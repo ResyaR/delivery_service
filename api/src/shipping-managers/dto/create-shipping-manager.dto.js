@@ -35,4 +35,9 @@ __decorate([
     (0, class_validator_1.Max)(5),
     __metadata("design:type", Number)
 ], CreateShippingManagerDto.prototype, "zone", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateShippingManagerDto.prototype, "token", void 0);
 //# sourceMappingURL=create-shipping-manager.dto.js.map

@@ -12,6 +12,7 @@ export declare class DeliveryService {
     private multiDropLocationRepository;
     private shippingManagerService;
     constructor(deliveryRepository: Repository<Delivery>, multiDropLocationRepository: Repository<MultiDropLocation>, shippingManagerService: ShippingManagerService);
+    private generateResiCode;
     create(userId: number, dto: CreateDeliveryDto, type: DeliveryType): Promise<Delivery>;
     findAll(userId: number, type?: DeliveryType): Promise<Delivery[]>;
     findPendingDeliveries(): Promise<Delivery[]>;
@@ -30,6 +31,7 @@ export declare class DeliveryService {
     }>;
     findOne(userId: number, id: number): Promise<Delivery>;
     findOneById(id: number): Promise<Delivery>;
+    findByResiCode(resiCode: string): Promise<Delivery>;
     assignDriver(id: number, driverId: number): Promise<Delivery>;
     updateStatus(id: number, status: DeliveryStatus): Promise<Delivery>;
     calculateMultiDropPrice(dropLocations: DropLocationDto[]): number;
@@ -43,4 +45,5 @@ export declare class DeliveryService {
     cancelDelivery(id: number, userId: number): Promise<Delivery>;
     findByZone(zone: number, status?: DeliveryStatus): Promise<Delivery[]>;
     findByShippingManager(shippingManagerId: number, status?: DeliveryStatus): Promise<Delivery[]>;
+    updateStatusByShippingManager(id: number, status: DeliveryStatus, shippingManagerZone: number): Promise<Delivery>;
 }

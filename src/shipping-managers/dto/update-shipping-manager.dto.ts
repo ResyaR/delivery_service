@@ -22,5 +22,9 @@ export class UpdateShippingManagerDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsString()
+  @IsOptional()
+  token?: string;
 }
 

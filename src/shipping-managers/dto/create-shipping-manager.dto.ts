@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsInt, Min, Max, IsNotEmpty } from 'class-validator';
+import { IsString, IsEmail, IsInt, Min, Max, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateShippingManagerDto {
   @IsString()
@@ -17,5 +17,9 @@ export class CreateShippingManagerDto {
   @Min(1)
   @Max(5)
   zone: number;
+
+  @IsString()
+  @IsOptional()
+  token?: string;
 }
 

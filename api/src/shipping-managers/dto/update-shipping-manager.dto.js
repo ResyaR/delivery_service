@@ -41,4 +41,9 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Boolean)
 ], UpdateShippingManagerDto.prototype, "isActive", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateShippingManagerDto.prototype, "token", void 0);
 //# sourceMappingURL=update-shipping-manager.dto.js.map

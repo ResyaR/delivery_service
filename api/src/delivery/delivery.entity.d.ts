@@ -44,6 +44,7 @@ export declare class Delivery {
     scheduleTimeSlot?: string;
     deliveryZone?: number;
     shippingManagerId?: number;
+    resiCode?: string;
     totalDropPoints?: number;
     totalDistance?: number;
     createdAt: Date;

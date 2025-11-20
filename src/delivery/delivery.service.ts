@@ -20,12 +20,53 @@ export class DeliveryService {
     private shippingManagerService: ShippingManagerService,
   ) {}
 
+  /**
+   * Generate unique resi code (format: MT-DEL-XXXXXX)
+   * X = random alphanumeric character
+   */
+  private async generateResiCode(): Promise<string> {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let resiCode: string = '';
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (!isUnique && attempts < maxAttempts) {
+      // Generate 6-character random code
+      let randomCode = '';
+      for (let i = 0; i < 6; i++) {
+        randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      resiCode = `MT-DEL-${randomCode}`;
+
+      // Check if resiCode already exists
+      const existing = await this.deliveryRepository.findOne({
+        where: { resiCode },
+      });
+
+      if (!existing) {
+        isUnique = true;
+      }
+      attempts++;
+    }
+
+    if (!isUnique || !resiCode) {
+      // Fallback: use timestamp-based code
+      const timestamp = Date.now().toString(36).toUpperCase().slice(-6);
+      resiCode = `MT-DEL-${timestamp}`;
+    }
+
+    return resiCode;
+  }
+
   async create(userId: number, dto: CreateDeliveryDto, type: DeliveryType): Promise<Delivery> {
+    const resiCode = await this.generateResiCode();
     const delivery = this.deliveryRepository.create({
       userId,
       ...dto,
       type,
       status: DeliveryStatus.PENDING,
+      resiCode,
     });
     return await this.deliveryRepository.save(delivery);
   }
@@ -175,6 +216,19 @@ export class DeliveryService {
     return delivery;
   }
 
+  async findByResiCode(resiCode: string): Promise<Delivery> {
+    const delivery = await this.deliveryRepository.findOne({
+      where: { resiCode },
+      relations: ['user', 'multiDropLocations']
+    });
+
+    if (!delivery) {
+      throw new NotFoundException(`Delivery with resi code ${resiCode} not found`);
+    }
+
+    return delivery;
+  }
+
   async assignDriver(id: number, driverId: number): Promise<Delivery> {
     const delivery = await this.findOneById(id);
     
@@ -260,6 +314,7 @@ export class DeliveryService {
     createDto: CreateMultiDropDeliveryDto
   ): Promise<Delivery> {
     const price = this.calculateMultiDropPrice(createDto.dropLocations);
+    const resiCode = await this.generateResiCode();
 
     const delivery = this.deliveryRepository.create({
       userId,
@@ -270,6 +325,7 @@ export class DeliveryService {
       totalDropPoints: createDto.dropLocations.length,
       totalDistance: createDto.estimatedDistance,
       notes: createDto.notes,
+      resiCode,
     });
 
     const savedDelivery = await this.deliveryRepository.save(delivery);
@@ -323,6 +379,7 @@ export class DeliveryService {
       }
     }
 
+    const resiCode = await this.generateResiCode();
     const delivery = this.deliveryRepository.create({
       userId,
       type: DeliveryType.JADWAL,
@@ -335,6 +392,7 @@ export class DeliveryService {
       notes: createDto.notes,
       deliveryZone: zone,
       shippingManagerId,
+      resiCode,
     });
 
     return this.deliveryRepository.save(delivery);
@@ -368,6 +426,7 @@ export class DeliveryService {
       }
     }
 
+    const resiCode = await this.generateResiCode();
     const delivery = this.deliveryRepository.create({
       userId,
       type: DeliveryType.PAKET_BESAR,
@@ -389,6 +448,7 @@ export class DeliveryService {
       notes: createDto.notes,
       deliveryZone: zone,
       shippingManagerId,
+      resiCode,
     });
 
     return this.deliveryRepository.save(delivery);
@@ -447,5 +507,61 @@ export class DeliveryService {
     }
 
     return await query.getMany();
+  }
+
+  // Update status by shipping manager (with zone validation)
+  async updateStatusByShippingManager(
+    id: number, 
+    status: DeliveryStatus, 
+    shippingManagerZone: number
+  ): Promise<Delivery> {
+    const delivery = await this.findOneById(id);
+    
+    // Verify delivery is in shipping manager's zone
+    if (!delivery.deliveryZone || delivery.deliveryZone !== shippingManagerZone) {
+      throw new BadRequestException('You can only update deliveries from your assigned zone');
+    }
+    
+    // Cannot change from delivered or cancelled
+    if (delivery.status === DeliveryStatus.DELIVERED || delivery.status === DeliveryStatus.CANCELLED) {
+      throw new BadRequestException(`Cannot change status from ${delivery.status}`);
+    }
+    
+    // Cannot change to cancelled (use cancel endpoint instead)
+    if (status === DeliveryStatus.CANCELLED) {
+      throw new BadRequestException('Cannot change to cancelled status. Use cancel endpoint instead.');
+    }
+    
+    // Allow shipping manager to change to any valid status (more flexible)
+    // Only prevent going backwards too far (e.g., from in_transit back to pending)
+    const statusOrder = [
+      DeliveryStatus.PENDING,
+      DeliveryStatus.ACCEPTED,
+      DeliveryStatus.PICKED_UP,
+      DeliveryStatus.IN_TRANSIT,
+      DeliveryStatus.DELIVERED
+    ];
+    
+    const currentIndex = statusOrder.indexOf(delivery.status);
+    const newIndex = statusOrder.indexOf(status);
+    
+    // Allow forward movement or one step backward for flexibility
+    if (newIndex < currentIndex - 1) {
+      throw new BadRequestException(`Cannot change status from ${delivery.status} to ${status}. Allowed transitions: forward or one step backward.`);
+    }
+    
+    delivery.status = status;
+    
+    // Set estimated arrival when status changes to in_transit
+    if (status === DeliveryStatus.IN_TRANSIT) {
+      delivery.estimatedArrival = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
+    }
+    
+    // Set actual arrival when delivered
+    if (status === DeliveryStatus.DELIVERED) {
+      delivery.actualArrival = new Date();
+    }
+    
+    return await this.deliveryRepository.save(delivery);
   }
 }

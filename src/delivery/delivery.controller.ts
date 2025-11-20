@@ -9,7 +9,9 @@ import {
   Query,
   Put,
   Headers,
-  UnauthorizedException
+  UnauthorizedException,
+  BadRequestException,
+  NotFoundException
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery, ApiHeader } from '@nestjs/swagger';
 import { DeliveryService } from './delivery.service';
@@ -421,7 +423,6 @@ export class DeliveryController {
       }
       
       const deliveries = await this.deliveryService.findByZone(zoneNumber, status);
-      console.log(`[DeliveryController] Found ${deliveries.length} deliveries for zone ${zoneNumber}${status ? ` with status ${status}` : ''}`);
       
       return {
         message: 'Deliveries retrieved successfully',
@@ -455,6 +456,77 @@ export class DeliveryController {
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid shipping manager token');
+    }
+  }
+
+  @Put('shipping-manager/:id/update-status')
+  @ApiOperation({ summary: 'Update delivery status by shipping manager' })
+  @ApiHeader({ name: 'shipping-manager-token', required: true })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({ schema: {
+    type: 'object',
+    properties: {
+      status: { 
+        type: 'string', 
+        enum: Object.values(DeliveryStatus),
+        example: 'accepted'
+      }
+    },
+    required: ['status']
+  }})
+  @ApiResponse({ status: 200, description: 'Status updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 400, description: 'Bad request - invalid status transition or zone mismatch' })
+  async updateStatusByShippingManager(
+    @Headers('shipping-manager-token') token: string,
+    @Param('id') id: string,
+    @Body() body: { status: DeliveryStatus },
+  ) {
+    try {
+      if (!token) {
+        throw new UnauthorizedException('Shipping manager token is required');
+      }
+      
+      const manager = await this.shippingManagerService.findByToken(token);
+      if (!manager) {
+        throw new UnauthorizedException('Invalid shipping manager token');
+      }
+      
+      const delivery = await this.deliveryService.updateStatusByShippingManager(
+        Number(id),
+        body.status,
+        manager.zone
+      );
+      
+      return {
+        message: 'Status updated successfully',
+        data: delivery,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid shipping manager token');
+    }
+  }
+
+  @Get('public/track/:resiCode')
+  @ApiOperation({ summary: 'Track delivery by resi code (public endpoint)' })
+  @ApiParam({ name: 'resiCode', type: String, description: 'Resi code (format: MT-DEL-XXXXXX)' })
+  @ApiResponse({ status: 200, description: 'Delivery found successfully' })
+  @ApiResponse({ status: 404, description: 'Delivery not found' })
+  async trackDelivery(@Param('resiCode') resiCode: string) {
+    try {
+      const delivery = await this.deliveryService.findByResiCode(resiCode);
+      return {
+        message: 'Delivery found successfully',
+        data: delivery,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new NotFoundException('Delivery not found');
     }
   }
 }
