@@ -146,14 +146,19 @@ export class OngkirService {
     name: string;
     type: string;
     postalCode: string;
-    multiplier: number;
+    multiplier?: number;
+    zone?: number;
   }) {
+    // Set default multiplier if not provided
+    const multiplier = data.multiplier || 1.0;
+    const zone = data.zone || null;
+    
     const result = await this.dataSource.query(
-      `INSERT INTO ongkir_cities (province, name, type, postal_code, multiplier, status)
-       VALUES ($1, $2, $3, $4, $5, 'active')
+      `INSERT INTO ongkir_cities (province, name, type, postal_code, multiplier, zone, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'active')
        RETURNING id, province, name, type, postal_code as "postalCode", 
-                 multiplier, status, created_at as "createdAt", updated_at as "updatedAt"`,
-      [data.province, data.name, data.type, data.postalCode, data.multiplier],
+                 multiplier, zone, status, created_at as "createdAt", updated_at as "updatedAt"`,
+      [data.province, data.name, data.type, data.postalCode, multiplier, zone],
     );
     return result[0];
   }
@@ -164,6 +169,7 @@ export class OngkirService {
     type?: string;
     postalCode?: string;
     multiplier?: number;
+    zone?: number;
     status?: string;
   }) {
     const fields: string[] = [];
@@ -190,6 +196,10 @@ export class OngkirService {
       fields.push(`multiplier = $${paramCount++}`);
       values.push(data.multiplier);
     }
+    if (data.zone !== undefined) {
+      fields.push(`zone = $${paramCount++}`);
+      values.push(data.zone);
+    }
     if (data.status !== undefined) {
       fields.push(`status = $${paramCount++}`);
       values.push(data.status);
@@ -203,7 +213,7 @@ export class OngkirService {
        SET ${fields.join(', ')}
        WHERE id = $${paramCount}
        RETURNING id, province, name, type, postal_code as "postalCode", 
-                 multiplier, status, created_at as "createdAt", updated_at as "updatedAt"`,
+                 multiplier, zone, status, created_at as "createdAt", updated_at as "updatedAt"`,
       values,
     );
     return result[0];

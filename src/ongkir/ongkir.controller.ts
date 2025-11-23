@@ -37,7 +37,8 @@ export class OngkirController {
     name: string;
     type: string;
     postalCode: string;
-    multiplier: number;
+    multiplier?: number;
+    zone?: number;
   }) {
     const city = await this.ongkirService.createCity(body);
     return {
@@ -54,6 +55,7 @@ export class OngkirController {
     type?: string;
     postalCode?: string;
     multiplier?: number;
+    zone?: number;
     status?: string;
   }) {
     const city = await this.ongkirService.updateCity(id, body);

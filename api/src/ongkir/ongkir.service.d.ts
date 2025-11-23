@@ -36,7 +36,8 @@ export declare class OngkirService {
         name: string;
         type: string;
         postalCode: string;
-        multiplier: number;
+        multiplier?: number;
+        zone?: number;
     }): Promise<any>;
     updateCity(id: number, data: {
         province?: string;
@@ -44,6 +45,7 @@ export declare class OngkirService {
         type?: string;
         postalCode?: string;
         multiplier?: number;
+        zone?: number;
         status?: string;
     }): Promise<any>;
     deleteCity(id: number): Promise<void>;

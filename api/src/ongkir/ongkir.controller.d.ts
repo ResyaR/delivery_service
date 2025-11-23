@@ -15,7 +15,8 @@ export declare class OngkirController {
         name: string;
         type: string;
         postalCode: string;
-        multiplier: number;
+        multiplier?: number;
+        zone?: number;
     }): Promise<{
         message: string;
         data: any;
@@ -26,6 +27,7 @@ export declare class OngkirController {
         type?: string;
         postalCode?: string;
         multiplier?: number;
+        zone?: number;
         status?: string;
     }): Promise<{
         message: string;
