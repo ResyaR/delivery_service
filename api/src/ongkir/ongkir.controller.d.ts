@@ -2,7 +2,7 @@ import { OngkirService } from './ongkir.service';
 export declare class OngkirController {
     private readonly ongkirService;
     constructor(ongkirService: OngkirService);
-    getCities(province?: string): Promise<{
+    getCities(province?: string, search?: string): Promise<{
         message: string;
         data: any;
     }>;

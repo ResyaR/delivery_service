@@ -194,16 +194,16 @@ let AuthService = class AuthService {
     async login(user) {
         const payload = { email: user.email, sub: user.id };
         await this.userService.updateLoginStatus(user.id);
-        const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
-        const refresh_token = this.jwtService.sign(payload, { expiresIn: '7d' });
+        const access_token = this.jwtService.sign(payload, { expiresIn: '24h' });
+        const refresh_token = this.jwtService.sign(payload, { expiresIn: '30d' });
         await this.userService.setRefreshToken(user.id, refresh_token);
         await this.userService.updateRefreshTokenRequest(user.id);
         return {
             message: 'Login success',
             access_token,
             refresh_token,
-            refresh_token_expires_in: 7 * 24 * 60 * 60,
-            expires_in: 15 * 60,
+            refresh_token_expires_in: 30 * 24 * 60 * 60,
+            expires_in: 24 * 60 * 60,
             token_type: 'Bearer',
             user: {
                 id: user.id,
@@ -220,14 +220,14 @@ let AuthService = class AuthService {
                 throw new common_1.UnauthorizedException('Invalid refresh token');
             }
             const newPayload = { email: user.email, sub: user.id };
-            const access_token = this.jwtService.sign(newPayload, { expiresIn: '15m' });
-            const new_refresh_token = this.jwtService.sign(newPayload, { expiresIn: '7d' });
+            const access_token = this.jwtService.sign(newPayload, { expiresIn: '24h' });
+            const new_refresh_token = this.jwtService.sign(newPayload, { expiresIn: '30d' });
             await this.userService.setRefreshToken(user.id, new_refresh_token);
             return {
                 message: 'Token refreshed successfully',
                 access_token,
                 refresh_token: new_refresh_token,
-                expires_in: 15 * 60,
+                expires_in: 24 * 60 * 60,
                 token_type: 'Bearer',
                 user: {
                     id: user.id,

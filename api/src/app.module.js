@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const core_1 = require("@nestjs/core");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const typeorm_1 = require("@nestjs/typeorm");
@@ -23,6 +24,8 @@ const menu_module_1 = require("./menus/menu.module");
 const order_module_1 = require("./orders/order.module");
 const cart_module_1 = require("./carts/cart.module");
 const shipping_manager_module_1 = require("./shipping-managers/shipping-manager.module");
+const address_module_1 = require("./addresses/address.module");
+const db_connection_interceptor_1 = require("./common/interceptors/db-connection.interceptor");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -38,21 +41,27 @@ exports.AppModule = AppModule = __decorate([
                     const poolConfig = isVercel ? {
                         max: 1,
                         min: 0,
-                        idleTimeoutMillis: 10000,
-                        connectionTimeoutMillis: 5000,
-                        statement_timeout: 20000,
-                        query_timeout: 20000,
+                        idleTimeoutMillis: 30000,
+                        connectionTimeoutMillis: 20000,
+                        statement_timeout: 30000,
+                        query_timeout: 30000,
                         allowExitOnIdle: true,
+                        testOnBorrow: false,
                         keepAlive: false,
                     } : {
                         max: 10,
                         min: 2,
-                        idleTimeoutMillis: 30000,
-                        connectionTimeoutMillis: 10000,
+                        idleTimeoutMillis: 60000,
+                        connectionTimeoutMillis: 20000,
                         statement_timeout: 30000,
                         query_timeout: 30000,
                         allowExitOnIdle: false,
                         keepAlive: true,
+                        keepAliveInitialDelayMillis: 10000,
+                        testOnBorrow: false,
+                        errorHandler: (err, client) => {
+                            console.error('Connection pool error:', err.message);
+                        },
                     };
                     return {
                         type: 'postgres',
@@ -68,10 +77,11 @@ exports.AppModule = AppModule = __decorate([
                         migrationsRun: !isVercel,
                         ssl: isProduction ? { rejectUnauthorized: false } : false,
                         extra: poolConfig,
-                        retryAttempts: isVercel ? 0 : 3,
-                        retryDelay: isVercel ? 0 : 3000,
-                        connectTimeoutMS: isVercel ? 5000 : 10000,
+                        retryAttempts: isVercel ? 0 : 5,
+                        retryDelay: isVercel ? 0 : 2000,
+                        connectTimeoutMS: isVercel ? 20000 : 20000,
                         keepConnectionAlive: !isVercel,
+                        options: `-c statement_timeout=${isVercel ? 30000 : 30000}`,
                     };
                 },
                 inject: [config_1.ConfigService],
@@ -87,9 +97,16 @@ exports.AppModule = AppModule = __decorate([
             order_module_1.OrderModule,
             cart_module_1.CartModule,
             shipping_manager_module_1.ShippingManagerModule,
+            address_module_1.AddressModule,
         ],
         controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService],
+        providers: [
+            app_service_1.AppService,
+            {
+                provide: core_1.APP_INTERCEPTOR,
+                useClass: db_connection_interceptor_1.DbConnectionInterceptor,
+            },
+        ],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

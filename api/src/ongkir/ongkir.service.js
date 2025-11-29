@@ -16,7 +16,7 @@ let OngkirService = class OngkirService {
     constructor(dataSource) {
         this.dataSource = dataSource;
     }
-    async getCities(province) {
+    async getCities(province, search) {
         let query = `
       SELECT id, province, name, type, postal_code as "postalCode", 
              multiplier, zone, status, created_at as "createdAt", updated_at as "updatedAt"
@@ -24,11 +24,32 @@ let OngkirService = class OngkirService {
       WHERE status = 'active'
     `;
         const params = [];
+        let paramCount = 1;
         if (province) {
-            query += ` AND province = $1`;
+            query += ` AND province = $${paramCount}`;
             params.push(province);
+            paramCount++;
         }
-        query += ` ORDER BY province, name`;
+        if (search) {
+            query += ` AND LOWER(name) LIKE $${paramCount}`;
+            params.push(`%${search.toLowerCase()}%`);
+            paramCount++;
+        }
+        if (search) {
+            const searchLower = search.toLowerCase();
+            query += ` ORDER BY 
+        CASE 
+          WHEN LOWER(name) = $${paramCount} THEN 1
+          WHEN LOWER(name) LIKE $${paramCount + 1} THEN 2
+          ELSE 3
+        END,
+        province, name`;
+            params.push(searchLower);
+            params.push(`${searchLower}%`);
+        }
+        else {
+            query += ` ORDER BY province, name`;
+        }
         const cities = await this.dataSource.query(query, params);
         return cities;
     }

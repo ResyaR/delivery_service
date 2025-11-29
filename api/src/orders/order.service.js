@@ -34,7 +34,8 @@ let OrderService = class OrderService {
         if (createOrderDto.deliveryType === order_entity_1.DeliveryType.EXPRESS) {
             deliveryFee = deliveryFee * 1.5;
         }
-        const total = subtotal + deliveryFee;
+        const appFee = subtotal * 0.1;
+        const total = subtotal + deliveryFee + appFee;
         let shippingManagerId = null;
         try {
             const shippingManagers = await this.shippingManagerService.findByZone(createOrderDto.deliveryZone);
@@ -79,6 +80,7 @@ let OrderService = class OrderService {
             deliveryFee,
             total,
             deliveryAddress: createOrderDto.deliveryAddress,
+            deliveryAddressLabel: createOrderDto.deliveryAddressLabel,
             deliveryCity: createOrderDto.deliveryCity,
             deliveryProvince: createOrderDto.deliveryProvince,
             deliveryPostalCode: createOrderDto.deliveryPostalCode,

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -14,6 +15,8 @@ import { MenuModule } from './menus/menu.module';
 import { OrderModule } from './orders/order.module';
 import { CartModule } from './carts/cart.module';
 import { ShippingManagerModule } from './shipping-managers/shipping-manager.module';
+import { AddressModule } from './addresses/address.module';
+import { DbConnectionInterceptor } from './common/interceptors/db-connection.interceptor';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -29,30 +32,33 @@ import { ShippingManagerModule } from './shipping-managers/shipping-manager.modu
         const poolConfig = isVercel ? {
           max: 1, // HANYA 1 connection per instance (penting untuk serverless!)
           min: 0, // Tidak perlu maintain minimum connections
-          idleTimeoutMillis: 20000, // Close idle connections setelah 20s (increase untuk avoid premature closure)
-          connectionTimeoutMillis: 10000, // Increase dari 5s ke 10s untuk give more time saat cold start
-          statement_timeout: 20000, // Query timeout 20s
-          query_timeout: 20000,
+          idleTimeoutMillis: 30000, // Close idle connections setelah 30s
+          connectionTimeoutMillis: 20000, // Increase ke 20s untuk give more time saat cold start
+          statement_timeout: 30000, // Query timeout 30s
+          query_timeout: 30000,
           allowExitOnIdle: true, // Allow process exit ketika idle
-          // Validasi koneksi sebelum digunakan untuk avoid "Connection terminated unexpectedly"
-          validate: (client: any) => {
-            // Check if client is valid, not ended, and not in ending state
-            return client && !client.ended && !client._ending && client._connected !== false;
-          },
           // Test koneksi sebelum digunakan (ping database untuk ensure connection is alive)
-          testOnBorrow: true,
+          testOnBorrow: false, // Disable karena bisa menyebabkan timeout issues
           // Reuse connection yang sama untuk semua query dalam instance yang sama
           keepAlive: false, // Tidak perlu keep alive di serverless (setiap request fresh)
         } : {
           // Untuk development/local, gunakan pool yang lebih besar
           max: 10,
           min: 2,
-          idleTimeoutMillis: 30000,
-          connectionTimeoutMillis: 10000,
+          idleTimeoutMillis: 60000, // 60s untuk development
+          connectionTimeoutMillis: 20000, // 20s untuk development
           statement_timeout: 30000,
           query_timeout: 30000,
           allowExitOnIdle: false,
           keepAlive: true,
+          keepAliveInitialDelayMillis: 10000, // Start keepAlive after 10s
+          // Test koneksi sebelum digunakan - simplified untuk avoid timeout
+          testOnBorrow: false, // Disable untuk avoid timeout issues
+          // Error handler untuk connection pool
+          errorHandler: (err: Error, client: any) => {
+            console.error('Connection pool error:', err.message);
+            // Don't throw, let pool handle reconnection
+          },
         };
 
         return {
@@ -74,13 +80,16 @@ import { ShippingManagerModule } from './shipping-managers/shipping-manager.modu
           // Connection pool settings untuk serverless
           extra: poolConfig,
           
-          // Retry settings - NO retry di serverless untuk avoid connection buildup
-          retryAttempts: isVercel ? 0 : 3,
-          retryDelay: isVercel ? 0 : 3000,
+          // Retry settings - Enable retry untuk development
+          retryAttempts: isVercel ? 0 : 5, // Increase retry attempts untuk development
+          retryDelay: isVercel ? 0 : 2000, // 2s delay between retries
           
           // Connection options
-          connectTimeoutMS: isVercel ? 10000 : 10000, // Increase timeout untuk Vercel cold start
-          keepConnectionAlive: !isVercel, // Jangan keep alive di serverless
+          connectTimeoutMS: isVercel ? 20000 : 20000, // 20s timeout
+          keepConnectionAlive: !isVercel, // Keep alive untuk development
+          
+          // Additional connection options untuk stability
+          options: `-c statement_timeout=${isVercel ? 30000 : 30000}`,
         };
       },
       inject: [ConfigService],
@@ -96,8 +105,15 @@ import { ShippingManagerModule } from './shipping-managers/shipping-manager.modu
     OrderModule,
     CartModule,
     ShippingManagerModule,
+    AddressModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: DbConnectionInterceptor,
+    },
+  ],
 })
 export class AppModule {}

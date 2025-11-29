@@ -20,8 +20,8 @@ let OngkirController = class OngkirController {
     constructor(ongkirService) {
         this.ongkirService = ongkirService;
     }
-    async getCities(province) {
-        const cities = await this.ongkirService.getCities(province);
+    async getCities(province, search) {
+        const cities = await this.ongkirService.getCities(province, search);
         return {
             message: 'Cities fetched successfully',
             data: cities,
@@ -164,8 +164,9 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Get all cities' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'List of cities' }),
     __param(0, (0, common_1.Query)('province')),
+    __param(1, (0, common_1.Query)('search')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], OngkirController.prototype, "getCities", null);
 __decorate([

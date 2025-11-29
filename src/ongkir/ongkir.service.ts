@@ -7,7 +7,7 @@ export class OngkirService {
 
   // ============== CITIES ==============
 
-  async getCities(province?: string) {
+  async getCities(province?: string, search?: string) {
     let query = `
       SELECT id, province, name, type, postal_code as "postalCode", 
              multiplier, zone, status, created_at as "createdAt", updated_at as "updatedAt"
@@ -16,13 +16,36 @@ export class OngkirService {
     `;
 
     const params: any[] = [];
+    let paramCount = 1;
     
     if (province) {
-      query += ` AND province = $1`;
+      query += ` AND province = $${paramCount}`;
       params.push(province);
+      paramCount++;
     }
 
-    query += ` ORDER BY province, name`;
+    if (search) {
+      // Search by city name (case-insensitive, partial match)
+      query += ` AND LOWER(name) LIKE $${paramCount}`;
+      params.push(`%${search.toLowerCase()}%`);
+      paramCount++;
+    }
+
+    // Order by: exact match first, then starts with, then contains, then by province and name
+    if (search) {
+      const searchLower = search.toLowerCase();
+      query += ` ORDER BY 
+        CASE 
+          WHEN LOWER(name) = $${paramCount} THEN 1
+          WHEN LOWER(name) LIKE $${paramCount + 1} THEN 2
+          ELSE 3
+        END,
+        province, name`;
+      params.push(searchLower); // exact match
+      params.push(`${searchLower}%`); // starts with
+    } else {
+      query += ` ORDER BY province, name`;
+    }
 
     const cities = await this.dataSource.query(query, params);
     return cities;

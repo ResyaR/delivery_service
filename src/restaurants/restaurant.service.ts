@@ -17,11 +17,20 @@ export class RestaurantService {
     return await this.restaurantRepository.save(restaurant);
   }
 
-  async findAll(status?: string): Promise<Restaurant[]> {
+  async findAll(status?: string, city?: string): Promise<Restaurant[]> {
     const query = this.restaurantRepository.createQueryBuilder('restaurant');
     
     if (status) {
       query.where('restaurant.status = :status', { status });
+    }
+    
+    // Filter by city if provided (search in address field)
+    if (city) {
+      if (status) {
+        query.andWhere('LOWER(restaurant.address) LIKE LOWER(:city)', { city: `%${city}%` });
+      } else {
+        query.where('LOWER(restaurant.address) LIKE LOWER(:city)', { city: `%${city}%` });
+      }
     }
     
     query.orderBy('restaurant.rating', 'DESC');

@@ -10,7 +10,7 @@ export declare class RestaurantController {
         message: string;
         data: import("./restaurant.entity").Restaurant;
     }>;
-    findAll(status?: string): Promise<{
+    findAll(status?: string, city?: string): Promise<{
         message: string;
         data: import("./restaurant.entity").Restaurant[];
     }>;

@@ -44,6 +44,9 @@ export class Order {
   @Column({ type: 'text' })
   deliveryAddress: string;
 
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  deliveryAddressLabel: string; // Label alamat (Rumah, Kantor, dll)
+
   @Column({ type: 'text', nullable: true })
   deliveryCity: string;
 

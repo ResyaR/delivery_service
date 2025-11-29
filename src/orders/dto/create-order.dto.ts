@@ -42,6 +42,11 @@ export class CreateOrderDto {
   @IsNotEmpty()
   deliveryAddress: string;
 
+  @ApiPropertyOptional({ example: 'Rumah' })
+  @IsString()
+  @IsOptional()
+  deliveryAddressLabel?: string;
+
   @ApiProperty({ example: 'Jakarta Selatan' })
   @IsString()
   @IsNotEmpty()

@@ -536,7 +536,7 @@ __decorate([
                         access_token: { type: 'string', example: 'jwt-access-token' },
                         refresh_token: { type: 'string', example: 'jwt-refresh-token' },
                         refresh_token_expires_in: { type: 'number', example: 2592000 },
-                        expires_in: { type: 'number', example: 1200 },
+                        expires_in: { type: 'number', example: 86400 },
                         token_type: { type: 'string', example: 'Bearer' },
                         user: {
                             type: 'object',
@@ -600,7 +600,7 @@ __decorate([
                     properties: {
                         access_token: { type: 'string', example: 'new.access.token' },
                         refresh_token: { type: 'string', example: 'new.refresh.token' },
-                        expires_in: { type: 'number', example: 900 },
+                        expires_in: { type: 'number', example: 86400 },
                         token_type: { type: 'string', example: 'Bearer' }
                     }
                 }

@@ -9,6 +9,7 @@ export declare class CreateOrderDto {
     restaurantId: number;
     items: OrderItemDto[];
     deliveryAddress: string;
+    deliveryAddressLabel?: string;
     deliveryCity: string;
     deliveryProvince: string;
     deliveryPostalCode?: string;

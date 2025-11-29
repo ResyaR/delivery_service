@@ -49,9 +49,10 @@ export class RestaurantController {
   @Get()
   @ApiOperation({ summary: 'Get all restaurants' })
   @ApiQuery({ name: 'status', required: false, enum: ['active', 'inactive'] })
+  @ApiQuery({ name: 'city', required: false, description: 'Filter restaurants by city name' })
   @ApiResponse({ status: 200, description: 'Restaurants retrieved successfully' })
-  async findAll(@Query('status') status?: string) {
-    const restaurants = await this.restaurantService.findAll(status);
+  async findAll(@Query('status') status?: string, @Query('city') city?: string) {
+    const restaurants = await this.restaurantService.findAll(status, city);
     return {
       message: 'Restaurants retrieved successfully',
       data: restaurants,

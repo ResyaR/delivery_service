@@ -34,7 +34,10 @@ export class OrderService {
       deliveryFee = deliveryFee * 1.5; // Express is 50% more expensive
     }
     
-    const total = subtotal + deliveryFee;
+    // Biaya aplikasi 10% dari subtotal
+    const appFee = subtotal * 0.1;
+    
+    const total = subtotal + deliveryFee + appFee;
 
     // Assign shipping manager based on zone
     let shippingManagerId: number | null = null;
@@ -96,6 +99,7 @@ export class OrderService {
       deliveryFee,
       total,
       deliveryAddress: createOrderDto.deliveryAddress,
+      deliveryAddressLabel: createOrderDto.deliveryAddressLabel,
       deliveryCity: createOrderDto.deliveryCity,
       deliveryProvince: createOrderDto.deliveryProvince,
       deliveryPostalCode: createOrderDto.deliveryPostalCode,

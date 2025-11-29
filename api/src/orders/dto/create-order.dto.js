@@ -64,6 +64,12 @@ __decorate([
     __metadata("design:type", String)
 ], CreateOrderDto.prototype, "deliveryAddress", void 0);
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'Rumah' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateOrderDto.prototype, "deliveryAddressLabel", void 0);
+__decorate([
     (0, swagger_1.ApiProperty)({ example: 'Jakarta Selatan' }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),

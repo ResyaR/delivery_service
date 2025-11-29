@@ -25,10 +25,18 @@ let RestaurantService = class RestaurantService {
         const restaurant = this.restaurantRepository.create(createRestaurantDto);
         return await this.restaurantRepository.save(restaurant);
     }
-    async findAll(status) {
+    async findAll(status, city) {
         const query = this.restaurantRepository.createQueryBuilder('restaurant');
         if (status) {
             query.where('restaurant.status = :status', { status });
+        }
+        if (city) {
+            if (status) {
+                query.andWhere('LOWER(restaurant.address) LIKE LOWER(:city)', { city: `%${city}%` });
+            }
+            else {
+                query.where('LOWER(restaurant.address) LIKE LOWER(:city)', { city: `%${city}%` });
+            }
         }
         query.orderBy('restaurant.rating', 'DESC');
         return await query.getMany();

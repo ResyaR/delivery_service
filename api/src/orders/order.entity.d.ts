@@ -18,6 +18,7 @@ export declare class Order {
     deliveryFee: number;
     total: number;
     deliveryAddress: string;
+    deliveryAddressLabel: string;
     deliveryCity: string;
     deliveryProvince: string;
     deliveryPostalCode: string;

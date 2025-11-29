@@ -36,8 +36,8 @@ let RestaurantController = class RestaurantController {
             data: restaurant,
         };
     }
-    async findAll(status) {
-        const restaurants = await this.restaurantService.findAll(status);
+    async findAll(status, city) {
+        const restaurants = await this.restaurantService.findAll(status, city);
         return {
             message: 'Restaurants retrieved successfully',
             data: restaurants,
@@ -83,10 +83,12 @@ __decorate([
     (0, common_1.Get)(),
     (0, swagger_1.ApiOperation)({ summary: 'Get all restaurants' }),
     (0, swagger_1.ApiQuery)({ name: 'status', required: false, enum: ['active', 'inactive'] }),
+    (0, swagger_1.ApiQuery)({ name: 'city', required: false, description: 'Filter restaurants by city name' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Restaurants retrieved successfully' }),
     __param(0, (0, common_1.Query)('status')),
+    __param(1, (0, common_1.Query)('city')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], RestaurantController.prototype, "findAll", null);
 __decorate([

@@ -67,6 +67,10 @@ __decorate([
     __metadata("design:type", String)
 ], Order.prototype, "deliveryAddress", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 50, nullable: true }),
+    __metadata("design:type", String)
+], Order.prototype, "deliveryAddressLabel", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: true }),
     __metadata("design:type", String)
 ], Order.prototype, "deliveryCity", void 0);

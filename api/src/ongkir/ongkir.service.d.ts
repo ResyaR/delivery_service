@@ -2,7 +2,7 @@ import { DataSource } from 'typeorm';
 export declare class OngkirService {
     private dataSource;
     constructor(dataSource: DataSource);
-    getCities(province?: string): Promise<any>;
+    getCities(province?: string, search?: string): Promise<any>;
     getCityById(id: number): Promise<any>;
     getZoneTariff(zoneFrom: number, zoneTo: number, serviceId: number): Promise<any>;
     getAllZoneTariffs(): Promise<any>;

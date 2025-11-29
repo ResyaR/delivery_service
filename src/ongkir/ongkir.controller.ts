@@ -12,8 +12,11 @@ export class OngkirController {
   @Get('cities')
   @ApiOperation({ summary: 'Get all cities' })
   @ApiResponse({ status: 200, description: 'List of cities' })
-  async getCities(@Query('province') province?: string) {
-    const cities = await this.ongkirService.getCities(province);
+  async getCities(
+    @Query('province') province?: string,
+    @Query('search') search?: string,
+  ) {
+    const cities = await this.ongkirService.getCities(province, search);
     return {
       message: 'Cities fetched successfully',
       data: cities,

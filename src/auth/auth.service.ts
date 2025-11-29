@@ -194,11 +194,11 @@ export class AuthService {
     // Update last login time
     await this.userService.updateLoginStatus(user.id);
 
-    // Generate access token (expires in 15 minutes)
-    const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
+    // Generate access token (expires in 24 hours)
+    const access_token = this.jwtService.sign(payload, { expiresIn: '24h' });
     
-    // Generate refresh token (expires in 7 days)
-    const refresh_token = this.jwtService.sign(payload, { expiresIn: '7d' });
+    // Generate refresh token (expires in 30 days)
+    const refresh_token = this.jwtService.sign(payload, { expiresIn: '30d' });
     await this.userService.setRefreshToken(user.id, refresh_token);
     await this.userService.updateRefreshTokenRequest(user.id);
 
@@ -206,8 +206,8 @@ export class AuthService {
       message: 'Login success',
       access_token,
       refresh_token,
-      refresh_token_expires_in: 7 * 24 * 60 * 60, // 7 days in seconds
-      expires_in: 15 * 60, // 15 minutes in seconds
+      refresh_token_expires_in: 30 * 24 * 60 * 60, // 30 days in seconds
+      expires_in: 24 * 60 * 60, // 24 hours in seconds
       token_type: 'Bearer',
       user: {
         id: user.id,
@@ -230,8 +230,8 @@ export class AuthService {
 
       // Generate new tokens
       const newPayload: JwtPayload = { email: user.email, sub: user.id };
-      const access_token = this.jwtService.sign(newPayload, { expiresIn: '15m' });
-      const new_refresh_token = this.jwtService.sign(newPayload, { expiresIn: '7d' });
+      const access_token = this.jwtService.sign(newPayload, { expiresIn: '24h' });
+      const new_refresh_token = this.jwtService.sign(newPayload, { expiresIn: '30d' });
 
       // Update refresh token in database
       await this.userService.setRefreshToken(user.id, new_refresh_token);
@@ -240,7 +240,7 @@ export class AuthService {
         message: 'Token refreshed successfully',
         access_token,
         refresh_token: new_refresh_token,
-        expires_in: 15 * 60,
+        expires_in: 24 * 60 * 60, // 24 hours in seconds
         token_type: 'Bearer',
         user: {
           id: user.id,

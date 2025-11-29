@@ -121,30 +121,46 @@ export default async function handler(req: any, res: any) {
     console.error('Handler error:', error);
     
     // Jika error connection-related, cleanup dan retry sekali
-    if (error && error.message && (
+    const isConnectionError = error && error.message && (
       error.message.includes('connection') || 
       error.message.includes('timeout') ||
       error.message.includes('ECONNREFUSED') ||
       error.message.includes('Connection terminated') ||
-      error.message.includes('Unable to connect')
-    )) {
+      error.message.includes('Unable to connect') ||
+      error.message.includes('Connection terminated due to connection timeout') ||
+      error.message.includes('Connection terminated unexpectedly')
+    );
+    
+    if (isConnectionError) {
       console.log('Connection error detected, cleaning up and retrying...');
       
       if (app && !isShuttingDown) {
         try {
           await closeApp();
+          // Wait a bit longer for cleanup
+          await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (closeError) {
           console.error('Error during cleanup:', closeError);
         }
       }
       
-      // Retry sekali setelah cleanup dengan delay kecil
+      // Retry sekali setelah cleanup dengan delay
       try {
-        await new Promise(resolve => setTimeout(resolve, 500)); // Small delay before retry
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Longer delay before retry
         server = await bootstrap();
         return server(req, res);
       } catch (retryError) {
         console.error('Retry failed:', retryError);
+        // If retry fails, return error response
+        if (!res.headersSent) {
+          res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+          res.status(503).json({ 
+            statusCode: 503,
+            message: 'Database connection error. Please try again.',
+            timestamp: new Date().toISOString()
+          });
+        }
+        return;
       }
     }
     

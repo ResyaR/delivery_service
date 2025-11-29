@@ -97,19 +97,40 @@ async function handler(req, res) {
     }
     catch (error) {
         console.error('Handler error:', error);
-        if (error && error.message && (error.message.includes('connection') ||
+        const isConnectionError = error && error.message && (error.message.includes('connection') ||
             error.message.includes('timeout') ||
-            error.message.includes('ECONNREFUSED'))) {
-            console.log('Connection error detected, cleaning up...');
+            error.message.includes('ECONNREFUSED') ||
+            error.message.includes('Connection terminated') ||
+            error.message.includes('Unable to connect') ||
+            error.message.includes('Connection terminated due to connection timeout') ||
+            error.message.includes('Connection terminated unexpectedly'));
+        if (isConnectionError) {
+            console.log('Connection error detected, cleaning up and retrying...');
             if (app && !isShuttingDown) {
-                await closeApp();
+                try {
+                    await closeApp();
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                catch (closeError) {
+                    console.error('Error during cleanup:', closeError);
+                }
             }
             try {
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 server = await bootstrap();
                 return server(req, res);
             }
             catch (retryError) {
                 console.error('Retry failed:', retryError);
+                if (!res.headersSent) {
+                    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+                    res.status(503).json({
+                        statusCode: 503,
+                        message: 'Database connection error. Please try again.',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                return;
             }
         }
         if (!res.headersSent) {
