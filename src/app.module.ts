@@ -29,13 +29,20 @@ import { ShippingManagerModule } from './shipping-managers/shipping-manager.modu
         const poolConfig = isVercel ? {
           max: 1, // HANYA 1 connection per instance (penting untuk serverless!)
           min: 0, // Tidak perlu maintain minimum connections
-          idleTimeoutMillis: 10000, // Close idle connections cepat (10s)
-          connectionTimeoutMillis: 5000, // Timeout cepat untuk fail fast
+          idleTimeoutMillis: 20000, // Close idle connections setelah 20s (increase untuk avoid premature closure)
+          connectionTimeoutMillis: 10000, // Increase dari 5s ke 10s untuk give more time saat cold start
           statement_timeout: 20000, // Query timeout 20s
           query_timeout: 20000,
           allowExitOnIdle: true, // Allow process exit ketika idle
+          // Validasi koneksi sebelum digunakan untuk avoid "Connection terminated unexpectedly"
+          validate: (client: any) => {
+            // Check if client is valid, not ended, and not in ending state
+            return client && !client.ended && !client._ending && client._connected !== false;
+          },
+          // Test koneksi sebelum digunakan (ping database untuk ensure connection is alive)
+          testOnBorrow: true,
           // Reuse connection yang sama untuk semua query dalam instance yang sama
-          keepAlive: false, // Tidak perlu keep alive di serverless
+          keepAlive: false, // Tidak perlu keep alive di serverless (setiap request fresh)
         } : {
           // Untuk development/local, gunakan pool yang lebih besar
           max: 10,
@@ -72,7 +79,7 @@ import { ShippingManagerModule } from './shipping-managers/shipping-manager.modu
           retryDelay: isVercel ? 0 : 3000,
           
           // Connection options
-          connectTimeoutMS: isVercel ? 5000 : 10000,
+          connectTimeoutMS: isVercel ? 10000 : 10000, // Increase timeout untuk Vercel cold start
           keepConnectionAlive: !isVercel, // Jangan keep alive di serverless
         };
       },

@@ -124,16 +124,23 @@ export default async function handler(req: any, res: any) {
     if (error && error.message && (
       error.message.includes('connection') || 
       error.message.includes('timeout') ||
-      error.message.includes('ECONNREFUSED')
+      error.message.includes('ECONNREFUSED') ||
+      error.message.includes('Connection terminated') ||
+      error.message.includes('Unable to connect')
     )) {
-      console.log('Connection error detected, cleaning up...');
+      console.log('Connection error detected, cleaning up and retrying...');
       
       if (app && !isShuttingDown) {
-        await closeApp();
+        try {
+          await closeApp();
+        } catch (closeError) {
+          console.error('Error during cleanup:', closeError);
+        }
       }
       
-      // Retry sekali setelah cleanup
+      // Retry sekali setelah cleanup dengan delay kecil
       try {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Small delay before retry
         server = await bootstrap();
         return server(req, res);
       } catch (retryError) {
