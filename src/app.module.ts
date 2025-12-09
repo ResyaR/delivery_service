@@ -17,6 +17,7 @@ import { CartModule } from './carts/cart.module';
 import { ShippingManagerModule } from './shipping-managers/shipping-manager.module';
 import { AddressModule } from './addresses/address.module';
 import { DbConnectionInterceptor } from './common/interceptors/db-connection.interceptor';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -26,70 +27,56 @@ import { DbConnectionInterceptor } from './common/interceptors/db-connection.int
         const isVercel = !!process.env.VERCEL;
         const isProduction = configService.get('NODE_ENV') === 'production';
         
-        // Untuk serverless (Vercel), gunakan connection pool yang sangat kecil
-        // karena setiap request bisa membuat instance baru
-        // Solusinya: gunakan SINGLETON connection pool dengan max: 1
+        // Konfigurasi untuk Supabase Transaction Pooler (PgBouncer)
+        // Transaction pooler lebih cocok untuk serverless
         const poolConfig = isVercel ? {
-          max: 1, // HANYA 1 connection per instance (penting untuk serverless!)
-          min: 0, // Tidak perlu maintain minimum connections
-          idleTimeoutMillis: 30000, // Close idle connections setelah 30s
-          connectionTimeoutMillis: 20000, // Increase ke 20s untuk give more time saat cold start
-          statement_timeout: 30000, // Query timeout 30s
-          query_timeout: 30000,
-          allowExitOnIdle: true, // Allow process exit ketika idle
-          // Test koneksi sebelum digunakan (ping database untuk ensure connection is alive)
-          testOnBorrow: false, // Disable karena bisa menyebabkan timeout issues
-          // Reuse connection yang sama untuk semua query dalam instance yang sama
-          keepAlive: false, // Tidak perlu keep alive di serverless (setiap request fresh)
+          max: 2, // Sedikit lebih dari 1 untuk handle concurrent queries
+          min: 0,
+          idleTimeoutMillis: 10000,
+          connectionTimeoutMillis: 10000,
+          statement_timeout: 25000,
+          query_timeout: 25000,
+          allowExitOnIdle: true,
+          application_name: 'delivery_service_vercel',
         } : {
-          // Untuk development/local, gunakan pool yang lebih besar
           max: 10,
           min: 2,
-          idleTimeoutMillis: 60000, // 60s untuk development
-          connectionTimeoutMillis: 20000, // 20s untuk development
+          idleTimeoutMillis: 60000,
+          connectionTimeoutMillis: 15000,
           statement_timeout: 30000,
           query_timeout: 30000,
           allowExitOnIdle: false,
           keepAlive: true,
-          keepAliveInitialDelayMillis: 10000, // Start keepAlive after 10s
-          // Test koneksi sebelum digunakan - simplified untuk avoid timeout
-          testOnBorrow: false, // Disable untuk avoid timeout issues
-          // Error handler untuk connection pool
-          errorHandler: (err: Error, client: any) => {
-            console.error('Connection pool error:', err.message);
-            // Don't throw, let pool handle reconnection
-          },
+          keepAliveInitialDelayMillis: 10000,
+          application_name: 'delivery_service_dev',
         };
 
         return {
           type: 'postgres',
           host: configService.get('DB_HOST'),
-          port: parseInt(configService.get('DB_PORT') || '5432', 10),
+          port: parseInt(configService.get('DB_PORT') || '6543', 10),
           username: configService.get('DB_USERNAME'),
           password: configService.get('DB_PASSWORD'),
           database: configService.get('DB_DATABASE'),
           autoLoadEntities: true,
           synchronize: false,
-          logging: configService.get('NODE_ENV') === 'development',
+          logging: !isProduction ? ['error', 'warn'] : false,
           migrations: [__dirname + '/migrations/*.{js,ts}'],
-          migrationsRun: !isVercel, // Jangan auto-run migrations di Vercel
+          migrationsRun: false,
           
-          // SSL untuk production
-          ssl: isProduction ? { rejectUnauthorized: false } : false,
+          // SSL wajib untuk Supabase
+          ssl: { rejectUnauthorized: false },
           
-          // Connection pool settings untuk serverless
+          // Connection pool settings
           extra: poolConfig,
           
-          // Retry settings - Enable retry untuk development
-          retryAttempts: isVercel ? 0 : 5, // Increase retry attempts untuk development
-          retryDelay: isVercel ? 0 : 2000, // 2s delay between retries
+          // Retry settings
+          retryAttempts: isVercel ? 2 : 5,
+          retryDelay: isVercel ? 1000 : 2000,
           
-          // Connection options
-          connectTimeoutMS: isVercel ? 20000 : 20000, // 20s timeout
-          keepConnectionAlive: !isVercel, // Keep alive untuk development
-          
-          // Additional connection options untuk stability
-          options: `-c statement_timeout=${isVercel ? 30000 : 30000}`,
+          // Connection timeout
+          connectTimeoutMS: isVercel ? 10000 : 15000,
+          keepConnectionAlive: !isVercel,
         };
       },
       inject: [ConfigService],
