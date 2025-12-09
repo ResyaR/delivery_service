@@ -34,8 +34,8 @@ export class OrderService {
       deliveryFee = deliveryFee * 1.5; // Express is 50% more expensive
     }
     
-    // Biaya aplikasi 10% dari subtotal
-    const appFee = subtotal * 0.1;
+    // Biaya aplikasi 10% dari subtotal + deliveryFee (makanan + driver)
+    const appFee = (subtotal + deliveryFee) * 0.1;
     
     const total = subtotal + deliveryFee + appFee;
 

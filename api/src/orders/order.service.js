@@ -34,7 +34,7 @@ let OrderService = class OrderService {
         if (createOrderDto.deliveryType === order_entity_1.DeliveryType.EXPRESS) {
             deliveryFee = deliveryFee * 1.5;
         }
-        const appFee = subtotal * 0.1;
+        const appFee = (subtotal + deliveryFee) * 0.1;
         const total = subtotal + deliveryFee + appFee;
         let shippingManagerId = null;
         try {
