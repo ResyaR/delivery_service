@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
@@ -9,6 +9,7 @@ import { CreateMultiDropDeliveryDto, DropLocationDto } from './dto/create-multi-
 import { CreateScheduledDeliveryDto } from './dto/create-scheduled-delivery.dto';
 import { CreatePaketBesarDto } from './dto/create-paket-besar.dto';
 import { ShippingManagerService } from '../shipping-managers/shipping-manager.service';
+import { OngkirService } from '../ongkir/ongkir.service';
 
 @Injectable()
 export class DeliveryService {
@@ -18,6 +19,8 @@ export class DeliveryService {
     @InjectRepository(MultiDropLocation)
     private multiDropLocationRepository: Repository<MultiDropLocation>,
     private shippingManagerService: ShippingManagerService,
+    @Inject(forwardRef(() => OngkirService))
+    private ongkirService: OngkirService,
   ) {}
 
   /**
@@ -357,15 +360,42 @@ export class DeliveryService {
     userId: number,
     createDto: CreateScheduledDeliveryDto
   ): Promise<Delivery> {
-    // Simple price calculation (in production, use zone-based pricing)
-    const distance = this.calculateDistance(createDto.pickupLocation, createDto.dropoffLocation);
-    const basePrice = 10000;
-    const pricePerKm = 2000;
-    const price = basePrice + (distance * pricePerKm);
+    // Calculate price using zone-based pricing (same as Cek Ongkir)
+    let price: number;
+    let zone: number | undefined = createDto.zone;
+
+    if (createDto.originCityId && createDto.destCityId && createDto.serviceId && createDto.weight) {
+      try {
+        // Use the same calculation as Cek Ongkir
+        const priceCalculation = await this.ongkirService.calculateOngkirByZone(
+          createDto.originCityId,
+          createDto.destCityId,
+          createDto.serviceId,
+          createDto.weight,
+        );
+        price = priceCalculation.total;
+        // Use zone from destination city if not provided
+        if (!zone) {
+          zone = priceCalculation.destCity.zone;
+        }
+      } catch (error) {
+        console.warn('Failed to calculate price using zone-based pricing, falling back to distance-based:', error);
+        // Fallback to distance-based calculation
+        const distance = this.calculateDistance(createDto.pickupLocation, createDto.dropoffLocation);
+        const basePrice = 10000;
+        const pricePerKm = 2000;
+        price = basePrice + (distance * pricePerKm);
+      }
+    } else {
+      // Fallback to distance-based calculation if zone-based data not provided
+      const distance = this.calculateDistance(createDto.pickupLocation, createDto.dropoffLocation);
+      const basePrice = 10000;
+      const pricePerKm = 2000;
+      price = basePrice + (distance * pricePerKm);
+    }
 
     // Determine zone and assign shipping manager
     let shippingManagerId: number | undefined;
-    const zone = createDto.zone;
     
     if (zone) {
       try {
@@ -383,6 +413,79 @@ export class DeliveryService {
     const delivery = this.deliveryRepository.create({
       userId,
       type: DeliveryType.JADWAL,
+      pickupLocation: createDto.pickupLocation,
+      dropoffLocation: createDto.dropoffLocation,
+      scheduledDate: new Date(createDto.scheduledDate),
+      scheduleTimeSlot: createDto.scheduleTimeSlot,
+      barang: createDto.barang,
+      price,
+      notes: createDto.notes,
+      deliveryZone: zone,
+      shippingManagerId,
+      resiCode,
+    });
+
+    return this.deliveryRepository.save(delivery);
+  }
+
+  // Create Kirim Sekarang delivery (same as scheduled but with type KIRIM_SEKARANG)
+  async createKirimSekarangDelivery(
+    userId: number,
+    createDto: CreateScheduledDeliveryDto
+  ): Promise<Delivery> {
+    // Calculate price using zone-based pricing (same as Cek Ongkir and Scheduled)
+    let price: number;
+    let zone: number | undefined = createDto.zone;
+
+    if (createDto.originCityId && createDto.destCityId && createDto.serviceId && createDto.weight) {
+      try {
+        // Use the same calculation as Cek Ongkir
+        const priceCalculation = await this.ongkirService.calculateOngkirByZone(
+          createDto.originCityId,
+          createDto.destCityId,
+          createDto.serviceId,
+          createDto.weight,
+        );
+        price = priceCalculation.total;
+        // Use zone from destination city if not provided
+        if (!zone) {
+          zone = priceCalculation.destCity.zone;
+        }
+      } catch (error) {
+        console.warn('Failed to calculate price using zone-based pricing, falling back to distance-based:', error);
+        // Fallback to distance-based calculation
+        const distance = this.calculateDistance(createDto.pickupLocation, createDto.dropoffLocation);
+        const basePrice = 10000;
+        const pricePerKm = 2000;
+        price = basePrice + (distance * pricePerKm);
+      }
+    } else {
+      // Fallback to distance-based calculation if zone-based data not provided
+      const distance = this.calculateDistance(createDto.pickupLocation, createDto.dropoffLocation);
+      const basePrice = 10000;
+      const pricePerKm = 2000;
+      price = basePrice + (distance * pricePerKm);
+    }
+
+    // Determine zone and assign shipping manager
+    let shippingManagerId: number | undefined;
+    
+    if (zone) {
+      try {
+        const shippingManagers = await this.shippingManagerService.findByZone(zone);
+        if (shippingManagers && shippingManagers.length > 0) {
+          // Assign to first available shipping manager in the zone
+          shippingManagerId = shippingManagers[0].id;
+        }
+      } catch (error) {
+        console.warn(`No shipping manager found for zone ${zone}`);
+      }
+    }
+
+    const resiCode = await this.generateResiCode();
+    const delivery = this.deliveryRepository.create({
+      userId,
+      type: DeliveryType.KIRIM_SEKARANG,
       pickupLocation: createDto.pickupLocation,
       dropoffLocation: createDto.dropoffLocation,
       scheduledDate: new Date(createDto.scheduledDate),

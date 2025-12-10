@@ -31,7 +31,7 @@ let DeliveryController = class DeliveryController {
         this.shippingManagerService = shippingManagerService;
     }
     async createKirimSekarang(req, dto) {
-        const delivery = await this.deliveryService.create(req.user.id, { ...dto, type: delivery_type_enum_1.DeliveryType.KIRIM_SEKARANG }, delivery_type_enum_1.DeliveryType.KIRIM_SEKARANG);
+        const delivery = await this.deliveryService.createKirimSekarangDelivery(req.user.id, dto);
         return {
             message: 'Kirim Sekarang request created',
             data: delivery
@@ -221,7 +221,7 @@ __decorate([
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, create_delivery_dto_1.CreateDeliveryDto]),
+    __metadata("design:paramtypes", [Object, create_scheduled_delivery_dto_1.CreateScheduledDeliveryDto]),
     __metadata("design:returntype", Promise)
 ], DeliveryController.prototype, "createKirimSekarang", null);
 __decorate([

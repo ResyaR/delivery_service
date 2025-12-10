@@ -1,4 +1,4 @@
-import { IsString, IsDateString, IsOptional, IsObject, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsDateString, IsOptional, IsObject, IsInt, Min, Max, IsNumber, Min as MinNumber } from 'class-validator';
 
 export class CreateScheduledDeliveryDto {
   @IsString()
@@ -18,6 +18,27 @@ export class CreateScheduledDeliveryDto {
   @Max(5)
   @IsOptional()
   zone?: number; // Delivery zone 1-5
+
+  // Fields for zone-based price calculation
+  @IsNumber()
+  @MinNumber(1)
+  @IsOptional()
+  originCityId?: number;
+
+  @IsNumber()
+  @MinNumber(1)
+  @IsOptional()
+  destCityId?: number;
+
+  @IsNumber()
+  @MinNumber(1)
+  @IsOptional()
+  serviceId?: number;
+
+  @IsNumber()
+  @MinNumber(0.1)
+  @IsOptional()
+  weight?: number;
 
   @IsObject()
   @IsOptional()

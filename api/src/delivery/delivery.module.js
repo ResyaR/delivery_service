@@ -14,6 +14,7 @@ const delivery_controller_1 = require("./delivery.controller");
 const delivery_entity_1 = require("./delivery.entity");
 const multi_drop_location_entity_1 = require("./multi-drop-location.entity");
 const shipping_manager_module_1 = require("../shipping-managers/shipping-manager.module");
+const ongkir_module_1 = require("../ongkir/ongkir.module");
 let DeliveryModule = class DeliveryModule {
 };
 exports.DeliveryModule = DeliveryModule;
@@ -22,6 +23,7 @@ exports.DeliveryModule = DeliveryModule = __decorate([
         imports: [
             typeorm_1.TypeOrmModule.forFeature([delivery_entity_1.Delivery, multi_drop_location_entity_1.MultiDropLocation]),
             shipping_manager_module_1.ShippingManagerModule,
+            (0, common_1.forwardRef)(() => ongkir_module_1.OngkirModule),
         ],
         controllers: [delivery_controller_1.DeliveryController],
         providers: [delivery_service_1.DeliveryService],

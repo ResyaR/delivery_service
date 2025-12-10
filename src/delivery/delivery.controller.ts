@@ -51,8 +51,8 @@ export class DeliveryController {
     status: 500,
     description: 'Internal server error.'
   })
-  async createKirimSekarang(@Request() req, @Body() dto: CreateDeliveryDto): Promise<DeliveryCreateResponseDto> {
-    const delivery = await this.deliveryService.create(req.user.id, { ...dto, type: DeliveryType.KIRIM_SEKARANG }, DeliveryType.KIRIM_SEKARANG);
+  async createKirimSekarang(@Request() req, @Body() dto: CreateScheduledDeliveryDto): Promise<DeliveryCreateResponseDto> {
+    const delivery = await this.deliveryService.createKirimSekarangDelivery(req.user.id, dto);
     return {
       message: 'Kirim Sekarang request created',
       data: delivery

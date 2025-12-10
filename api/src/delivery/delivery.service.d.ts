@@ -7,11 +7,13 @@ import { CreateMultiDropDeliveryDto, DropLocationDto } from './dto/create-multi-
 import { CreateScheduledDeliveryDto } from './dto/create-scheduled-delivery.dto';
 import { CreatePaketBesarDto } from './dto/create-paket-besar.dto';
 import { ShippingManagerService } from '../shipping-managers/shipping-manager.service';
+import { OngkirService } from '../ongkir/ongkir.service';
 export declare class DeliveryService {
     private deliveryRepository;
     private multiDropLocationRepository;
     private shippingManagerService;
-    constructor(deliveryRepository: Repository<Delivery>, multiDropLocationRepository: Repository<MultiDropLocation>, shippingManagerService: ShippingManagerService);
+    private ongkirService;
+    constructor(deliveryRepository: Repository<Delivery>, multiDropLocationRepository: Repository<MultiDropLocation>, shippingManagerService: ShippingManagerService, ongkirService: OngkirService);
     private generateResiCode;
     create(userId: number, dto: CreateDeliveryDto, type: DeliveryType): Promise<Delivery>;
     findAll(userId: number, type?: DeliveryType): Promise<Delivery[]>;
@@ -39,6 +41,7 @@ export declare class DeliveryService {
     private calculateDistance;
     createMultiDropDelivery(userId: number, createDto: CreateMultiDropDeliveryDto): Promise<Delivery>;
     createScheduledDelivery(userId: number, createDto: CreateScheduledDeliveryDto): Promise<Delivery>;
+    createKirimSekarangDelivery(userId: number, createDto: CreateScheduledDeliveryDto): Promise<Delivery>;
     createPaketBesarDelivery(userId: number, createDto: CreatePaketBesarDto): Promise<Delivery>;
     getMultiDropLocations(deliveryId: number): Promise<MultiDropLocation[]>;
     private validateStatusTransition;

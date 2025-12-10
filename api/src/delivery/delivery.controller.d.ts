@@ -11,7 +11,7 @@ export declare class DeliveryController {
     private readonly deliveryService;
     private readonly shippingManagerService;
     constructor(deliveryService: DeliveryService, shippingManagerService: ShippingManagerService);
-    createKirimSekarang(req: any, dto: CreateDeliveryDto): Promise<DeliveryCreateResponseDto>;
+    createKirimSekarang(req: any, dto: CreateScheduledDeliveryDto): Promise<DeliveryCreateResponseDto>;
     createJadwal(req: any, dto: CreateDeliveryDto): Promise<DeliveryCreateResponseDto>;
     createTitipBeli(req: any, dto: CreateTitipBeliDto): Promise<DeliveryCreateResponseDto>;
     createMultiDrop(req: any, createDto: CreateMultiDropDeliveryDto): Promise<DeliveryCreateResponseDto>;

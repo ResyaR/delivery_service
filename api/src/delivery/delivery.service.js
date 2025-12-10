@@ -20,11 +20,13 @@ const delivery_type_enum_1 = require("./dto/delivery-type.enum");
 const delivery_entity_1 = require("./delivery.entity");
 const multi_drop_location_entity_1 = require("./multi-drop-location.entity");
 const shipping_manager_service_1 = require("../shipping-managers/shipping-manager.service");
+const ongkir_service_1 = require("../ongkir/ongkir.service");
 let DeliveryService = class DeliveryService {
-    constructor(deliveryRepository, multiDropLocationRepository, shippingManagerService) {
+    constructor(deliveryRepository, multiDropLocationRepository, shippingManagerService, ongkirService) {
         this.deliveryRepository = deliveryRepository;
         this.multiDropLocationRepository = multiDropLocationRepository;
         this.shippingManagerService = shippingManagerService;
+        this.ongkirService = ongkirService;
     }
     async generateResiCode() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -258,12 +260,31 @@ let DeliveryService = class DeliveryService {
         return result;
     }
     async createScheduledDelivery(userId, createDto) {
-        const distance = this.calculateDistance(createDto.pickupLocation, createDto.dropoffLocation);
-        const basePrice = 10000;
-        const pricePerKm = 2000;
-        const price = basePrice + (distance * pricePerKm);
+        let price;
+        let zone = createDto.zone;
+        if (createDto.originCityId && createDto.destCityId && createDto.serviceId && createDto.weight) {
+            try {
+                const priceCalculation = await this.ongkirService.calculateOngkirByZone(createDto.originCityId, createDto.destCityId, createDto.serviceId, createDto.weight);
+                price = priceCalculation.total;
+                if (!zone) {
+                    zone = priceCalculation.destCity.zone;
+                }
+            }
+            catch (error) {
+                console.warn('Failed to calculate price using zone-based pricing, falling back to distance-based:', error);
+                const distance = this.calculateDistance(createDto.pickupLocation, createDto.dropoffLocation);
+                const basePrice = 10000;
+                const pricePerKm = 2000;
+                price = basePrice + (distance * pricePerKm);
+            }
+        }
+        else {
+            const distance = this.calculateDistance(createDto.pickupLocation, createDto.dropoffLocation);
+            const basePrice = 10000;
+            const pricePerKm = 2000;
+            price = basePrice + (distance * pricePerKm);
+        }
         let shippingManagerId;
-        const zone = createDto.zone;
         if (zone) {
             try {
                 const shippingManagers = await this.shippingManagerService.findByZone(zone);
@@ -279,6 +300,60 @@ let DeliveryService = class DeliveryService {
         const delivery = this.deliveryRepository.create({
             userId,
             type: delivery_type_enum_1.DeliveryType.JADWAL,
+            pickupLocation: createDto.pickupLocation,
+            dropoffLocation: createDto.dropoffLocation,
+            scheduledDate: new Date(createDto.scheduledDate),
+            scheduleTimeSlot: createDto.scheduleTimeSlot,
+            barang: createDto.barang,
+            price,
+            notes: createDto.notes,
+            deliveryZone: zone,
+            shippingManagerId,
+            resiCode,
+        });
+        return this.deliveryRepository.save(delivery);
+    }
+    async createKirimSekarangDelivery(userId, createDto) {
+        let price;
+        let zone = createDto.zone;
+        if (createDto.originCityId && createDto.destCityId && createDto.serviceId && createDto.weight) {
+            try {
+                const priceCalculation = await this.ongkirService.calculateOngkirByZone(createDto.originCityId, createDto.destCityId, createDto.serviceId, createDto.weight);
+                price = priceCalculation.total;
+                if (!zone) {
+                    zone = priceCalculation.destCity.zone;
+                }
+            }
+            catch (error) {
+                console.warn('Failed to calculate price using zone-based pricing, falling back to distance-based:', error);
+                const distance = this.calculateDistance(createDto.pickupLocation, createDto.dropoffLocation);
+                const basePrice = 10000;
+                const pricePerKm = 2000;
+                price = basePrice + (distance * pricePerKm);
+            }
+        }
+        else {
+            const distance = this.calculateDistance(createDto.pickupLocation, createDto.dropoffLocation);
+            const basePrice = 10000;
+            const pricePerKm = 2000;
+            price = basePrice + (distance * pricePerKm);
+        }
+        let shippingManagerId;
+        if (zone) {
+            try {
+                const shippingManagers = await this.shippingManagerService.findByZone(zone);
+                if (shippingManagers && shippingManagers.length > 0) {
+                    shippingManagerId = shippingManagers[0].id;
+                }
+            }
+            catch (error) {
+                console.warn(`No shipping manager found for zone ${zone}`);
+            }
+        }
+        const resiCode = await this.generateResiCode();
+        const delivery = this.deliveryRepository.create({
+            userId,
+            type: delivery_type_enum_1.DeliveryType.KIRIM_SEKARANG,
             pickupLocation: createDto.pickupLocation,
             dropoffLocation: createDto.dropoffLocation,
             scheduledDate: new Date(createDto.scheduledDate),
@@ -414,8 +489,10 @@ exports.DeliveryService = DeliveryService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(delivery_entity_1.Delivery)),
     __param(1, (0, typeorm_1.InjectRepository)(multi_drop_location_entity_1.MultiDropLocation)),
+    __param(3, (0, common_1.Inject)((0, common_1.forwardRef)(() => ongkir_service_1.OngkirService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        shipping_manager_service_1.ShippingManagerService])
+        shipping_manager_service_1.ShippingManagerService,
+        ongkir_service_1.OngkirService])
 ], DeliveryService);
 //# sourceMappingURL=delivery.service.js.map

@@ -38,6 +38,30 @@ __decorate([
     __metadata("design:type", Number)
 ], CreateScheduledDeliveryDto.prototype, "zone", void 0);
 __decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateScheduledDeliveryDto.prototype, "originCityId", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateScheduledDeliveryDto.prototype, "destCityId", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateScheduledDeliveryDto.prototype, "serviceId", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0.1),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], CreateScheduledDeliveryDto.prototype, "weight", void 0);
+__decorate([
     (0, class_validator_1.IsObject)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Object)
