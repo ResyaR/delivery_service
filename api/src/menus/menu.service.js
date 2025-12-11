@@ -56,7 +56,8 @@ let MenuService = class MenuService {
     }
     async remove(id) {
         const menu = await this.findOne(id);
-        await this.menuRepository.remove(menu);
+        await this.menuRepository.softDelete(id);
+        await this.menuRepository.update(id, { availability: false });
     }
     async updateAvailability(id, availability) {
         const menu = await this.findOne(id);

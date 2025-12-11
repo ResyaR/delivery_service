@@ -94,6 +94,10 @@ __decorate([
     (0, typeorm_1.UpdateDateColumn)({ type: 'timestamp' }),
     __metadata("design:type", Date)
 ], User.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)({ type: 'timestamp', nullable: true }),
+    __metadata("design:type", Date)
+], User.prototype, "deletedAt", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Entity)()
 ], User);

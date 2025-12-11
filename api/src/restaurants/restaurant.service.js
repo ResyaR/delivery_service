@@ -55,7 +55,7 @@ let RestaurantService = class RestaurantService {
     }
     async remove(id) {
         const restaurant = await this.findOne(id);
-        await this.restaurantRepository.remove(restaurant);
+        await this.restaurantRepository.softDelete(id);
     }
     async incrementOrderCount(id) {
         await this.restaurantRepository.increment({ id }, 'totalOrders', 1);

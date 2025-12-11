@@ -10,4 +10,5 @@ export declare class ShippingManager {
     orders: Order[];
     createdAt: Date;
     updatedAt: Date;
+    deletedAt?: Date;
 }

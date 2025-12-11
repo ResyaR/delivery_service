@@ -13,4 +13,5 @@ export declare class Restaurant {
     closingTime: string;
     createdAt: Date;
     updatedAt: Date;
+    deletedAt?: Date;
 }

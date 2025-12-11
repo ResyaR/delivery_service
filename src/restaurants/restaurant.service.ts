@@ -53,7 +53,8 @@ export class RestaurantService {
 
   async remove(id: number): Promise<void> {
     const restaurant = await this.findOne(id);
-    await this.restaurantRepository.remove(restaurant);
+    // Use soft delete instead of hard delete
+    await this.restaurantRepository.softDelete(id);
   }
 
   async incrementOrderCount(id: number): Promise<void> {

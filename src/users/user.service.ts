@@ -87,7 +87,8 @@ export class UserService {
       throw new NotFoundException('User tidak ditemukan');
     }
 
-    await this.userRepository.remove(user);
+    // Use soft delete instead of hard delete
+    await this.userRepository.softDelete(userId);
   }
 
   async updateVerificationStatus(userId: number, isVerified: boolean): Promise<void> {

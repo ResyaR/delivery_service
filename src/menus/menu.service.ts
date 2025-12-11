@@ -54,7 +54,11 @@ export class MenuService {
 
   async remove(id: number): Promise<void> {
     const menu = await this.findOne(id);
-    await this.menuRepository.remove(menu);
+    // Use soft delete instead of hard delete
+    // Also set availability to false when soft deleting
+    await this.menuRepository.softDelete(id);
+    // Update availability to false as well
+    await this.menuRepository.update(id, { availability: false });
   }
 
   async updateAvailability(id: number, availability: boolean): Promise<Menu> {

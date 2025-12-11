@@ -11,4 +11,5 @@ export declare class Menu {
     availability: boolean;
     createdAt: Date;
     updatedAt: Date;
+    deletedAt?: Date;
 }

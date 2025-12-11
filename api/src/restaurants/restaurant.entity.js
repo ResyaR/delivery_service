@@ -70,6 +70,10 @@ __decorate([
     (0, typeorm_1.UpdateDateColumn)({ type: 'timestamp' }),
     __metadata("design:type", Date)
 ], Restaurant.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)({ type: 'timestamp', nullable: true }),
+    __metadata("design:type", Date)
+], Restaurant.prototype, "deletedAt", void 0);
 exports.Restaurant = Restaurant = __decorate([
     (0, typeorm_1.Entity)('restaurants')
 ], Restaurant);

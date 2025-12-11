@@ -83,7 +83,7 @@ let UserService = class UserService {
         if (!user) {
             throw new common_1.NotFoundException('User tidak ditemukan');
         }
-        await this.userRepository.remove(user);
+        await this.userRepository.softDelete(userId);
     }
     async updateVerificationStatus(userId, isVerified) {
         await this.userRepository.update(userId, { isVerified });

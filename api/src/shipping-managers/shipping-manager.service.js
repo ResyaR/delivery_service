@@ -209,7 +209,8 @@ let ShippingManagerService = class ShippingManagerService {
     }
     async remove(id) {
         const shippingManager = await this.findOne(id);
-        await this.shippingManagerRepository.remove(shippingManager);
+        await this.shippingManagerRepository.softDelete(id);
+        await this.shippingManagerRepository.update(id, { isActive: false });
     }
 };
 exports.ShippingManagerService = ShippingManagerService;

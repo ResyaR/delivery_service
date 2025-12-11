@@ -213,7 +213,11 @@ export class ShippingManagerService {
 
   async remove(id: number): Promise<void> {
     const shippingManager = await this.findOne(id);
-    await this.shippingManagerRepository.remove(shippingManager);
+    // Use soft delete instead of hard delete
+    // Also set isActive to false when soft deleting
+    await this.shippingManagerRepository.softDelete(id);
+    // Update isActive to false as well
+    await this.shippingManagerRepository.update(id, { isActive: false });
   }
 }
 
